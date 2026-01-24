@@ -1,4 +1,4 @@
-package-as: Aas_DataTexts
+package-as: Asa_DataTexts
 
 ignore:
     - README.md
