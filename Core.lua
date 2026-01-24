@@ -1,0 +1,269 @@
+local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceConsole-3.0', 'AceEvent-3.0')
+local LSM = LibStub('LibSharedMedia-3.0')
+
+ADT.RegisteredDataTexts = {}
+ADT.Frames = {}
+
+local DEFAULT_FONT = 'Friz Quadrata TT'
+local DEFAULT_ALIGN = ADT_Enums.Align.CENTER
+local DEFAULT_TEXT_SIZE = 12
+local DEFAULT_OUTLINE = ADT_Enums.Outline.NONE
+local DEFAULT_SHADOW = true
+
+function ADT:RegisterDataText(name, data)
+    self.RegisteredDataTexts[name] = data
+end
+
+function ADT:OnInitialize()
+    local E = ADT_Enums
+    local defaults = {
+        global = {
+            DataTexts = {
+                textSize = DEFAULT_TEXT_SIZE,
+                font = DEFAULT_FONT,
+                outline = DEFAULT_OUTLINE,
+                shadow = DEFAULT_SHADOW,
+                valueColor = { r = 1, g = 1, b = 1 },
+                labelColor = { r = 1, g = 1, b = 1 },
+                valueColorOverride = false,
+                labelColorOverride = false,
+            }
+        },
+    }
+
+    for name, data in pairs(self.RegisteredDataTexts) do
+        local key = name:lower()
+        defaults.global.DataTexts[key .. 'Enabled'] = data.defaultEnabled ~= false
+        defaults.global.DataTexts[key .. 'Anchor'] = data.defaultAnchor or 'Minimap'
+        defaults.global.DataTexts[key .. 'Point'] = data.defaultPoint or E.Points.CENTER
+        defaults.global.DataTexts[key .. 'RelativePoint'] = data.defaultRelativePoint or E.Points.CENTER
+        defaults.global.DataTexts[key .. 'X'] = data.defaultX or 0
+        defaults.global.DataTexts[key .. 'Y'] = data.defaultY or 0
+        defaults.global.DataTexts[key .. 'Align'] = data.defaultAlign or DEFAULT_ALIGN
+        defaults.global.DataTexts[key .. 'Strata'] = data.defaultStrata or E.Strata.MEDIUM
+
+        defaults.global.DataTexts[key .. 'OverrideText'] = false
+        defaults.global.DataTexts[key .. 'Font'] = DEFAULT_FONT
+        defaults.global.DataTexts[key .. 'TextSize'] = DEFAULT_TEXT_SIZE
+        defaults.global.DataTexts[key .. 'Outline'] = DEFAULT_OUTLINE
+        defaults.global.DataTexts[key .. 'Shadow'] = DEFAULT_SHADOW
+        defaults.global.DataTexts[key .. 'OverrideColors'] = false
+        defaults.global.DataTexts[key .. 'ValueColor'] = { r = 1, g = 1, b = 1 }
+        defaults.global.DataTexts[key .. 'LabelColor'] = { r = 1, g = 1, b = 1 }
+        defaults.global.DataTexts[key .. 'ValueColorOverride'] = false
+        defaults.global.DataTexts[key .. 'LabelColorOverride'] = false
+    end
+
+    self.db = LibStub('AceDB-3.0'):New('ADT_DB', defaults, true)
+
+    local options = self:GetSettings()
+
+    -- Register the main Asa Suite category if it doesn't exist
+    if not LibStub("AceConfigRegistry-3.0"):GetOptionsTable("|cFF047857Asa|r Suite") then
+        LibStub("AceConfig-3.0"):RegisterOptionsTable("|cFF047857Asa|r Suite", {
+            name = "|cFF047857Asa|r Suite",
+            type = "group",
+            args = {
+                info = {
+                    type = "description",
+                    name = "Welcome to |cFF047857Asa|r Suite. Select a module from the menu on the left to configure its settings.",
+                    order = 1,
+                },
+            },
+        })
+        LibStub("AceConfigDialog-3.0"):AddToBlizOptions("|cFF047857Asa|r Suite", "|cFF047857Asa|r Suite")
+    end
+
+    -- Register module's options as a sub-category
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("ADT", options)
+    self.optionsFrame, self.categoryID = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("ADT", "Data Texts", "|cFF047857Asa|r Suite")
+
+    -- Ensure we have the parent category ID if possible
+    if not self.categoryID and self.optionsFrame and self.optionsFrame.parent then
+        self.categoryID = self.optionsFrame.parent
+    end
+
+    for name, _ in pairs(self.RegisteredDataTexts) do
+        self.Frames[name] = self:CreateDataTextFrame(name)
+    end
+
+    self:RegisterEvent('PLAYER_ENTERING_WORLD', 'UpdateTexts')
+    self:RegisterEvent('FRIENDLIST_UPDATE', 'UpdateTexts')
+    self:RegisterEvent('GUILD_ROSTER_UPDATE', 'UpdateTexts')
+    self:RegisterEvent('PLAYER_GUILD_UPDATE', 'UpdateTexts')
+    self:RegisterEvent('GROUP_ROSTER_UPDATE', 'UpdateTexts')
+    self:RegisterEvent('BN_CONNECTED', 'UpdateTexts')
+    self:RegisterEvent('BN_FRIEND_LIST_SIZE_CHANGED', 'UpdateTexts')
+    self:RegisterEvent('BN_FRIEND_INFO_CHANGED', 'UpdateTexts')
+    self:RegisterEvent('UPDATE_INVENTORY_DURABILITY', 'UpdateTexts')
+
+    C_Timer.After(1, function()
+        C_FriendList.ShowFriends()
+        C_GuildInfo.GuildRoster()
+        self:UpdateTexts()
+    end)
+
+    C_Timer.After(5, function()
+        self:UpdateTexts()
+    end)
+
+    self:RegisterChatCommand('adt', 'ChatCommand')
+end
+
+function ADT:ToggleFrameStack(name)
+    if not FrameStackTooltip_Toggle then
+        UIParentLoadAddOn("Blizzard_DebugTools")
+    end
+
+    if FrameStackTooltip_Toggle then
+        FrameStackTooltip_Toggle()
+    else
+        ExecuteChatCommand("fstack")
+    end
+
+    if name then
+        if not self.selectionFrame then
+            self.selectionFrame = CreateFrame("Frame", "Asa_DataTextsSelectionFrame", UIParent)
+            self.selectionFrame:SetAllPoints(UIParent)
+            self.selectionFrame:SetFrameStrata("TOOLTIP")
+            self.selectionFrame:EnableMouse(true)
+            self.selectionFrame:SetScript("OnMouseDown", function(_, button)
+                if button == "LeftButton" then
+                    self.selectionFrame:Hide()
+                    C_Timer.After(0.01, function()
+                        local foci = GetMouseFoci()
+                        local focus = foci and foci[1]
+                        if focus then
+                            local focusName = focus:GetName()
+                            if focusName then
+                                local key = self.selectingModule:lower()
+                                self.db.global.DataTexts[key .. "Anchor"] = focusName
+                                self:Print(string.format("Anchored %s to %s", self.selectingModule, focusName))
+                                self:UpdateTexts()
+                                self:ToggleFrameStack()
+                                LibStub('AceConfigRegistry-3.0'):NotifyChange('ADT')
+                            else
+                                self:Print("Selected frame has no name. Please try another.")
+                                self.selectionFrame:Show()
+                            end
+                        else
+                            self:Print("No frame found under mouse. Please try again.")
+                            self.selectionFrame:Show()
+                        end
+                    end)
+                elseif button == "RightButton" then
+                    self:ToggleFrameStack()
+                end
+            end)
+        end
+
+        self.selectingModule = name
+        self.selectionFrame:Show()
+        self:Print(string.format("Select a frame to anchor %s to (Left Click to select, Right Click to cancel).", name))
+    else
+        if self.selectionFrame then
+            self.selectionFrame:Hide()
+        end
+    end
+end
+
+function ADT:ChatCommand(input)
+    if not input or input:trim() == "" then
+        if Settings and Settings.OpenToCategory then
+            if self.categoryID then
+                Settings.OpenToCategory(self.categoryID)
+            else
+                Settings.OpenToCategory("|cFF047857Asa|r Suite")
+            end
+        elseif InterfaceOptionsFrame_OpenToCategory then
+            InterfaceOptionsFrame_OpenToCategory("|cFF047857Asa|r Suite")
+        end
+    else
+        LibStub('AceConfigCmd-3.0').HandleCommand(self, 'adt', 'ADT', input)
+    end
+end
+
+function ADT:CreateDataTextFrame(name)
+    local data = self.RegisteredDataTexts[name]
+    if not data then return end
+
+    local frame = CreateFrame('Frame', 'Asa_DataText_' .. name, UIParent)
+    frame.text = frame:CreateFontString(nil, 'OVERLAY')
+    frame.name = name
+    frame:EnableMouse(true)
+    frame:SetMouseClickEnabled(true)
+    frame:SetFrameStrata(ADT_Enums.Strata.MEDIUM)
+
+    frame:SetScript('OnEnter', function(self_frame)
+        GameTooltip:SetOwner(self_frame, 'ANCHOR_BOTTOM')
+        GameTooltip:ClearLines()
+        if data.onEnter then
+            data.onEnter(self_frame)
+        end
+        GameTooltip:Show()
+    end)
+
+    frame:SetScript('OnLeave', function()
+        GameTooltip:Hide()
+    end)
+
+    frame:SetScript('OnMouseUp', function(self_frame, button)
+        if data.onClick then
+            data.onClick(self_frame, button)
+        end
+    end)
+
+    frame.text:SetAllPoints(frame)
+    frame.text:SetAlpha(1)
+    frame:Show()
+    return frame
+end
+
+function ADT:UpdateTexts()
+    local db = self.db.global.DataTexts or {}
+
+    for name, data in pairs(self.RegisteredDataTexts) do
+        local frame = self.Frames[name]
+        local key = name:lower()
+
+        if frame then
+            if db[key .. 'Enabled'] then
+                frame:Show()
+                local value = data.onUpdate and data.onUpdate() or ""
+                local anchor = _G[db[key .. 'Anchor']] or UIParent
+                frame:SetParent(anchor)
+                frame:ClearAllPoints()
+                frame:SetPoint(db[key .. 'Point'] or DEFAULT_ALIGN, anchor, db[key .. 'RelativePoint'] or DEFAULT_ALIGN, db[key .. 'X'] or 0, db[key .. 'Y'] or 0)
+                frame:SetFrameStrata(db[key .. 'Strata'] or ADT_Enums.Strata.MEDIUM)
+
+                local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
+                local font = LSM:Fetch('font', db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT)
+                local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or DEFAULT_OUTLINE
+                local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
+                local shadowOffset = shadow and 1 or 0
+
+                frame:SetSize(self:CalculateTextWidthForFont('### ' .. name, size), size)
+                frame.text:SetJustifyH(db[key .. 'Align'] or DEFAULT_ALIGN)
+                frame.text:SetFont(font, size, outline)
+                frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
+
+                self:ApplyText(frame, name, value)
+            else
+                frame:Hide()
+            end
+        end
+    end
+end
+
+function ADT:ApplyText(f, label, value)
+    if not f or not f.text then
+        return
+    end
+
+    local valR, valG, valB = self:GetClassColorOrDefault(true, f.name)
+    local lblR, lblG, lblB = self:GetClassColorOrDefault(false, f.name)
+
+    local text = string.format('|cff%02x%02x%02x%s |cff%02x%02x%02x%s|r', valR * 255, valG * 255, valB * 255, tostring(value or 0), lblR * 255, lblG * 255, lblB * 255, label)
+
+    f.text:SetText(text)
+end

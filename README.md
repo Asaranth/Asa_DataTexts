@@ -1,0 +1,28 @@
+# Asa Suite: DataTexts (ADT)
+
+**Asa Suite: DataTexts** is a lightweight, standalone DataTexts addon for World of Warcraft. It provides customizable information displays (DataTexts) that can be anchored to various UI elements.
+
+## Features
+
+- **Modular Design**: Includes several built-in DataTexts:
+  - **Durability**: Tracks your gear's durability and provides a quick overview in the tooltip.
+  - **Friends**: Shows online friends (Battle.net and Character) with detailed tooltips.
+  - **Guild**: Displays online guild members and their status.
+- **Highly Customizable**:
+  - Adjust font, size, outline, and shadow globally or per DataText.
+  - Customize colors for labels and values.
+  - Easy anchoring to any UI frame using the built-in frame selection tool.
+- **Standalone**: Can be used by itself or as part of the **Asa Suite**.
+
+## Usage
+
+- **Open Settings**: Use the slash command `/adt` to open the configuration panel.
+- **Anchor a DataText**: 
+  1. In the settings, find the DataText you want to move.
+  2. Click the "Select Anchor" button.
+  3. Left-click any frame on your UI to anchor the DataText to it.
+  4. Right-click to cancel.
+
+### Localization
+
+Localization support is planned for future updates.
