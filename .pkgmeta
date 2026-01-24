@@ -1,5 +1,8 @@
 package-as: Aas_DataTexts
 
+curseforge:
+    id: 1442996
+
 ignore:
     - README.md
     - .gitignore
