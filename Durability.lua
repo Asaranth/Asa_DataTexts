@@ -45,8 +45,11 @@ local function AddTooltipLinesForDurability()
         [17] = "Off Hand",
         [18] = "Ranged"
     }
+
+    local sortedSlots = {1, 3, 5, 9, 10, 6, 7, 8, 16, 17, 18}
     
-    for slotID, slotName in pairs(slots) do
+    for _, slotID in ipairs(sortedSlots) do
+        local slotName = slots[slotID]
         local durability, maxDurability = GetInventoryItemDurability(slotID)
         if durability and maxDurability then
             local percent = (durability / maxDurability) * 100

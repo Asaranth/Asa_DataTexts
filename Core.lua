@@ -78,7 +78,6 @@ function ADT:OnInitialize()
     LibStub("AceConfig-3.0"):RegisterOptionsTable("ADT", options)
     self.optionsFrame, self.categoryID = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("ADT", "Data Texts", "|cFF047857Asa|r Suite")
 
-    -- Ensure we have the parent category ID if possible
     if not self.categoryID and self.optionsFrame and self.optionsFrame.parent then
         self.categoryID = self.optionsFrame.parent
     end
@@ -96,10 +95,23 @@ function ADT:OnInitialize()
     self:RegisterEvent('BN_FRIEND_LIST_SIZE_CHANGED', 'UpdateTexts')
     self:RegisterEvent('BN_FRIEND_INFO_CHANGED', 'UpdateTexts')
     self:RegisterEvent('UPDATE_INVENTORY_DURABILITY', 'UpdateTexts')
+    self:RegisterEvent('PLAYER_REGEN_ENABLED', 'UpdateTexts')
+    self:RegisterEvent('PLAYER_REGEN_DISABLED', 'UpdateTexts')
 
     C_Timer.After(1, function()
-        C_FriendList.ShowFriends()
-        C_GuildInfo.GuildRoster()
+        if C_FriendList and C_FriendList.ShowFriends then C_FriendList.ShowFriends() end
+        if C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() end
+        self:UpdateTexts()
+    end)
+
+    -- Force update every 10 seconds for the first minute to catch late loading elements
+    for i = 2, 6 do
+        C_Timer.After(i * 10, function()
+            self:UpdateTexts()
+        end)
+    end
+
+    C_Timer.After(2, function()
         self:UpdateTexts()
     end)
 
@@ -108,6 +120,9 @@ function ADT:OnInitialize()
     end)
 
     self:RegisterChatCommand('adt', 'ChatCommand')
+
+    LSM.RegisterCallback(self, 'LibSharedMedia_Registered', 'UpdateTexts')
+    LSM.RegisterCallback(self, 'LibSharedMedia_SetGlobal', 'UpdateTexts')
 end
 
 function ADT:ToggleFrameStack(name)
@@ -229,23 +244,57 @@ function ADT:UpdateTexts()
         if frame then
             if db[key .. 'Enabled'] then
                 frame:Show()
-                local value = data.onUpdate and data.onUpdate() or ""
-                local anchor = _G[db[key .. 'Anchor']] or UIParent
+                local value = ""
+                local success, err = pcall(function() value = data.onUpdate and data.onUpdate() or "" end)
+                if not success then
+                    value = "Error"
+                    self:Print("Error updating " .. name .. ": " .. tostring(err))
+                end
+                
+                local anchorName = db[key .. 'Anchor']
+                local anchor = _G[anchorName]
+                
+                if not anchor and anchorName ~= "UIParent" then
+                    -- If anchor doesn't exist, fallback to UIParent and try again in 5 seconds
+                    anchor = UIParent
+                    if not self.retryTimerActive then
+                        self.retryTimerActive = true
+                        C_Timer.After(5, function()
+                            self.retryTimerActive = false
+                            self:UpdateTexts()
+                        end)
+                    end
+                end
+                
+                anchor = anchor or UIParent
                 frame:SetParent(anchor)
                 frame:ClearAllPoints()
                 frame:SetPoint(db[key .. 'Point'] or DEFAULT_ALIGN, anchor, db[key .. 'RelativePoint'] or DEFAULT_ALIGN, db[key .. 'X'] or 0, db[key .. 'Y'] or 0)
                 frame:SetFrameStrata(db[key .. 'Strata'] or ADT_Enums.Strata.MEDIUM)
+                frame:SetFrameLevel(10)
 
                 local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
-                local font = LSM:Fetch('font', db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT)
+                local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT
+                local font = LSM:Fetch('font', fontName)
+                
+                if not font then
+                    font = [[Fonts\FRIZQT__.TTF]]
+                end
+
                 local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or DEFAULT_OUTLINE
                 local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
                 local shadowOffset = shadow and 1 or 0
 
                 frame:SetSize(self:CalculateTextWidthForFont('### ' .. name, size), size)
                 frame.text:SetJustifyH(db[key .. 'Align'] or DEFAULT_ALIGN)
-                frame.text:SetFont(font, size, outline)
+                local successSetFont, setFontErr = pcall(function() frame.text:SetFont(font, size, outline) end)
+                if not successSetFont then
+                    self:Print(string.format("Error setting font %s for %s: %s", tostring(font), name, tostring(setFontErr)))
+                    frame.text:SetFont([[Fonts\FRIZQT__.TTF]], size, outline)
+                end
                 frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
+                frame.text:SetAlpha(1)
+                frame:SetAlpha(1)
 
                 self:ApplyText(frame, name, value)
             else
@@ -262,8 +311,21 @@ function ADT:ApplyText(f, label, value)
 
     local valR, valG, valB = self:GetClassColorOrDefault(true, f.name)
     local lblR, lblG, lblB = self:GetClassColorOrDefault(false, f.name)
-
     local text = string.format('|cff%02x%02x%02x%s |cff%02x%02x%02x%s|r', valR * 255, valG * 255, valB * 255, tostring(value or 0), lblR * 255, lblG * 255, lblB * 255, label)
 
     f.text:SetText(text)
+
+    local width = f.text:GetStringWidth()
+    local height = f.text:GetStringHeight()
+    local _, size = f.text:GetFont()
+
+    if width == 0 then
+        width = self:CalculateTextWidthForFont(text, size or 12)
+    end
+    
+    if height == 0 then
+        height = size or 12
+    end
+
+    f:SetSize(width + 4, height + 2)
 end

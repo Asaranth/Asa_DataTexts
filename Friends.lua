@@ -4,7 +4,8 @@ local TOOLTIP_TITLE_FRIENDS = 'Friends Online'
 
 local function AddTooltipLinesForFriends()
     GameTooltip:AddLine(TOOLTIP_TITLE_FRIENDS, 1, 1, 1)
-    for i = 1, C_FriendList.GetNumFriends() do
+    local numFriends = C_FriendList and C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
+    for i = 1, numFriends do
         local info = C_FriendList.GetFriendInfoByIndex(i)
         if info and info.connected then
             local r, g, b = ADT:GetClassColor(info.className)
@@ -14,8 +15,9 @@ local function AddTooltipLinesForFriends()
 end
 
 local function AddBattleNetFriendTooltipLines()
-    for i = 1, BNGetNumFriends() do
-        local friendInfo = C_BattleNet.GetFriendAccountInfo(i)
+    local numBNFriends = BNGetNumFriends and BNGetNumFriends() or 0
+    for i = 1, numBNFriends do
+        local friendInfo = C_BattleNet and (C_BattleNet.GetFriendAccountInfo and C_BattleNet.GetFriendAccountInfo(i) or (C_BattleNet.GetFriendAccountInfoByIndex and C_BattleNet.GetFriendAccountInfoByIndex(i)))
         local game = friendInfo and friendInfo.gameAccountInfo
         if game and game.isOnline and game.clientProgram == "WoW" then
             local charName = game.characterName or friendInfo.accountName or 'Unknown'
@@ -27,13 +29,15 @@ end
 
 local function GetFriendsOnlineCount()
     local count = 0
-    for i = 1, C_FriendList.GetNumFriends() do
+    local numFriends = C_FriendList and C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
+    for i = 1, numFriends do
         local info = C_FriendList.GetFriendInfoByIndex(i)
         if info and info.connected then count = count + 1 end
     end
 
-    for i = BNGetNumFriends(), 1, -1 do
-        local info = C_BattleNet.GetFriendAccountInfo(i)
+    local numBNFriends = BNGetNumFriends and BNGetNumFriends() or 0
+    for i = 1, numBNFriends do
+        local info = C_BattleNet and (C_BattleNet.GetFriendAccountInfo and C_BattleNet.GetFriendAccountInfo(i) or (C_BattleNet.GetFriendAccountInfoByIndex and C_BattleNet.GetFriendAccountInfoByIndex(i)))
         if info and info.gameAccountInfo and info.gameAccountInfo.isOnline and info.gameAccountInfo.clientProgram == "WoW" then
             count = count + 1
         end

@@ -4,7 +4,7 @@ local TOOLTIP_TITLE_GUILD = 'Guild Members Online'
 
 local function AddTooltipLinesForGuild()
     GameTooltip:AddLine(TOOLTIP_TITLE_GUILD, 1, 1, 1)
-    local numTotal = GetNumGuildMembers()
+    local numTotal = GetNumGuildMembers and GetNumGuildMembers() or 0
     for i = 1, numTotal do
         local name, _, _, _, _, zone, _, _, online, _, class = GetGuildRosterInfo(i)
         if online then
@@ -17,8 +17,9 @@ end
 
 local function GetGuildOnlineCount()
     local count = 0
-    if IsInGuild() then
-        for i = 1, GetNumGuildMembers() do
+    if IsInGuild and IsInGuild() then
+        local numTotal = GetNumGuildMembers and GetNumGuildMembers() or 0
+        for i = 1, numTotal do
             local _, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
             if online then count = count + 1 end
         end

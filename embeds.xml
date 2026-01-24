@@ -7,5 +7,5 @@
     <Include file="Libs/AceGUI-3.0/AceGUI-3.0.xml"/>
     <Include file="Libs/CallbackHandler-1.0/CallbackHandler-1.0.xml"/>
     <Script file="Libs/LibSharedMedia-3.0/LibSharedMedia-3.0.lua"/>
-    <Script file="Libs/AceGUI-3.0-SharedMediaWidgets/FontWidget.lua"/>
+    <Include file="Libs/AceGUI-3.0-SharedMediaWidgets/widget.xml"/>
 </Ui>
