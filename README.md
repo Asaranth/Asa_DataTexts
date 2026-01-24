@@ -1,6 +1,6 @@
-# Asa Suite: DataTexts (ADT)
+# Asa Suite: DataTexts
 
-**Asa Suite: DataTexts** is a lightweight, standalone DataTexts addon for World of Warcraft. It provides customizable information displays (DataTexts) that can be anchored to various UI elements.
+**Asa Suite: DataTexts** is a lightweight, standalone DataTexts addon for World of Warcraft. It provides customisable information displays (DataTexts) that can be anchored to various UI elements.
 
 ## Features
 
@@ -12,7 +12,6 @@
   - Adjust font, size, outline, and shadow globally or per DataText.
   - Customize colors for labels and values.
   - Easy anchoring to any UI frame using the built-in frame selection tool.
-- **Standalone**: Can be used by itself or as part of the **Asa Suite**.
 
 ## Usage
 
