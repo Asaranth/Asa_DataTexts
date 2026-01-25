@@ -15,7 +15,6 @@ ADT:RegisterDataText('Talents', {
     onUpdate = GetTalentProfile,
     events = {
         'TRAIT_CONFIG_UPDATED',
-        'TRAIT_CONFIG_LIST_UPDATED',
         'ACTIVE_TALENT_GROUP_CHANGED',
         'PLAYER_TALENT_UPDATE',
     },

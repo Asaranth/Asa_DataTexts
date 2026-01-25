@@ -92,10 +92,6 @@ function ADT:OnInitialize()
     end
 
     self:RegisterEvent('PLAYER_ENTERING_WORLD', function() self:UpdateTexts() end)
-    self:RegisterEvent('PLAYER_REGEN_ENABLED', function() self:UpdateTexts() end)
-    self:RegisterEvent('PLAYER_REGEN_DISABLED', function() self:UpdateTexts() end)
-    self:RegisterEvent('GROUP_ROSTER_UPDATE', function() self:UpdateTexts() end)
-
     -- Initial update and data requests
     C_Timer.After(1, function()
         if C_FriendList and C_FriendList.ShowFriends then C_FriendList.ShowFriends() end
@@ -226,12 +222,14 @@ end
 
 function ADT:UpdateTexts(targetName)
     -- If triggered by a talent/trait event, wait a moment for the game state to update
-    if targetName == 'Talents' then
+    if targetName == 'Talents' and not self.talentUpdateInProgress then
         if not self.talentUpdatePending then
             self.talentUpdatePending = true
             C_Timer.After(0.5, function()
                 self.talentUpdatePending = false
+                self.talentUpdateInProgress = true
                 self:UpdateTexts('Talents')
+                self.talentUpdateInProgress = false
             end)
         end
         return

@@ -47,7 +47,6 @@ ADT:RegisterDataText('Friends', {
     onUpdate = GetFriendsOnlineCount,
     events = {
         'FRIENDLIST_UPDATE',
-        'BN_CONNECTED',
         'BN_FRIEND_LIST_SIZE_CHANGED',
         'BN_FRIEND_INFO_CHANGED',
     },
