@@ -28,7 +28,7 @@ local function GetDurability()
     return hasItem and minDurability or 100
 end
 
-local function AddTooltipLinesForDurability()
+local function AddTooltipLines()
     GameTooltip:AddLine("Durability", 1, 1, 1)
     GameTooltip:AddLine(" ")
     
@@ -64,7 +64,10 @@ ADT:RegisterDataText('Durability', {
         local percent = GetDurability()
         return string.format("%.0f%%", percent)
     end,
-    onEnter = AddTooltipLinesForDurability,
+    events = {
+        'UPDATE_INVENTORY_DURABILITY',
+    },
+    onEnter = AddTooltipLines,
     onClick = function() ToggleCharacter("PaperDollFrame") end,
     defaultEnabled = true,
     defaultAnchor = 'Minimap',

@@ -1,9 +1,7 @@
 local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT')
 
-local TOOLTIP_TITLE_GUILD = 'Guild Members Online'
-
-local function AddTooltipLinesForGuild()
-    GameTooltip:AddLine(TOOLTIP_TITLE_GUILD, 1, 1, 1)
+local function AddTooltipLines()
+    GameTooltip:AddLine('Guild Members Online', 1, 1, 1)
     local numTotal = GetNumGuildMembers and GetNumGuildMembers() or 0
     for i = 1, numTotal do
         local name, _, _, _, _, zone, _, _, online, _, class = GetGuildRosterInfo(i)
@@ -29,7 +27,11 @@ end
 
 ADT:RegisterDataText('Guild', {
     onUpdate = GetGuildOnlineCount,
-    onEnter = AddTooltipLinesForGuild,
+    events = {
+        'GUILD_ROSTER_UPDATE',
+        'PLAYER_GUILD_UPDATE',
+    },
+    onEnter = AddTooltipLines,
     onClick = function() ToggleGuildFrame() end,
     defaultEnabled = true,
     defaultAnchor = 'Minimap',

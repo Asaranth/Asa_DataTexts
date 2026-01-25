@@ -1,4 +1,4 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceConsole-3.0', 'AceEvent-3.0')
+local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceEvent-3.0', 'AceConsole-3.0')
 local LSM = LibStub('LibSharedMedia-3.0')
 
 ADT.RegisteredDataTexts = {}
@@ -12,6 +12,11 @@ local DEFAULT_SHADOW = true
 
 function ADT:RegisterDataText(name, data)
     self.RegisteredDataTexts[name] = data
+    if data.events then
+        for _, event in ipairs(data.events) do
+            self:RegisterEvent(event, function() self:UpdateTexts(name) end)
+        end
+    end
 end
 
 function ADT:OnInitialize()
@@ -86,40 +91,25 @@ function ADT:OnInitialize()
         self.Frames[name] = self:CreateDataTextFrame(name)
     end
 
-    self:RegisterEvent('PLAYER_ENTERING_WORLD', 'UpdateTexts')
-    self:RegisterEvent('FRIENDLIST_UPDATE', 'UpdateTexts')
-    self:RegisterEvent('GUILD_ROSTER_UPDATE', 'UpdateTexts')
-    self:RegisterEvent('PLAYER_GUILD_UPDATE', 'UpdateTexts')
-    self:RegisterEvent('GROUP_ROSTER_UPDATE', 'UpdateTexts')
-    self:RegisterEvent('BN_CONNECTED', 'UpdateTexts')
-    self:RegisterEvent('BN_FRIEND_LIST_SIZE_CHANGED', 'UpdateTexts')
-    self:RegisterEvent('BN_FRIEND_INFO_CHANGED', 'UpdateTexts')
-    self:RegisterEvent('UPDATE_INVENTORY_DURABILITY', 'UpdateTexts')
-    self:RegisterEvent('PLAYER_REGEN_ENABLED', 'UpdateTexts')
-    self:RegisterEvent('PLAYER_REGEN_DISABLED', 'UpdateTexts')
+    self:RegisterEvent('PLAYER_ENTERING_WORLD', function() self:UpdateTexts() end)
+    self:RegisterEvent('PLAYER_REGEN_ENABLED', function() self:UpdateTexts() end)
+    self:RegisterEvent('PLAYER_REGEN_DISABLED', function() self:UpdateTexts() end)
+    self:RegisterEvent('GROUP_ROSTER_UPDATE', function() self:UpdateTexts() end)
 
+    -- Initial update and data requests
     C_Timer.After(1, function()
         if C_FriendList and C_FriendList.ShowFriends then C_FriendList.ShowFriends() end
         if C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() end
         self:UpdateTexts()
     end)
 
-    -- Force update every 10 seconds for the first minute to catch late loading elements
-    for i = 2, 6 do
-        C_Timer.After(i * 10, function()
-            self:UpdateTexts()
-        end)
-    end
+    -- Delayed updates to catch elements that load late
+    C_Timer.After(5, function() self:UpdateTexts() end)
+    C_Timer.After(30, function() self:UpdateTexts() end)
 
-    C_Timer.After(2, function()
-        self:UpdateTexts()
-    end)
-
-    C_Timer.After(5, function()
-        self:UpdateTexts()
-    end)
-
+    -- Setup slash command
     self:RegisterChatCommand('adt', 'ChatCommand')
+    self:RegisterChatCommand('asadt', 'ChatCommand')
 
     LSM.RegisterCallback(self, 'LibSharedMedia_Registered', 'UpdateTexts')
     LSM.RegisterCallback(self, 'LibSharedMedia_SetGlobal', 'UpdateTexts')
@@ -194,7 +184,7 @@ function ADT:ChatCommand(input)
             InterfaceOptionsFrame_OpenToCategory("|cFF047857Asa|r Suite")
         end
     else
-        LibStub('AceConfigCmd-3.0').HandleCommand(self, 'adt', 'ADT', input)
+        LibStub('AceConfigCmd-3.0'):HandleCommand(self, 'adt', 'ADT', input)
     end
 end
 
@@ -210,12 +200,12 @@ function ADT:CreateDataTextFrame(name)
     frame:SetFrameStrata(ADT_Enums.Strata.MEDIUM)
 
     frame:SetScript('OnEnter', function(self_frame)
-        GameTooltip:SetOwner(self_frame, 'ANCHOR_BOTTOM')
-        GameTooltip:ClearLines()
         if data.onEnter then
+            GameTooltip:SetOwner(self_frame, 'ANCHOR_BOTTOM')
+            GameTooltip:ClearLines()
             data.onEnter(self_frame)
+            GameTooltip:Show()
         end
-        GameTooltip:Show()
     end)
 
     frame:SetScript('OnLeave', function()
@@ -234,71 +224,85 @@ function ADT:CreateDataTextFrame(name)
     return frame
 end
 
-function ADT:UpdateTexts()
+function ADT:UpdateTexts(targetName)
+    -- If triggered by a talent/trait event, wait a moment for the game state to update
+    if targetName == 'Talents' then
+        if not self.talentUpdatePending then
+            self.talentUpdatePending = true
+            C_Timer.After(0.5, function()
+                self.talentUpdatePending = false
+                self:UpdateTexts('Talents')
+            end)
+        end
+        return
+    end
+
     local db = self.db.global.DataTexts or {}
 
     for name, data in pairs(self.RegisteredDataTexts) do
-        local frame = self.Frames[name]
-        local key = name:lower()
+        if not targetName or targetName == name then
+            local frame = self.Frames[name]
+            local key = name:lower()
 
-        if frame then
-            if db[key .. 'Enabled'] then
-                frame:Show()
-                local value = ""
-                local success, err = pcall(function() value = data.onUpdate and data.onUpdate() or "" end)
-                if not success then
-                    value = "Error"
-                    self:Print("Error updating " .. name .. ": " .. tostring(err))
-                end
-                
-                local anchorName = db[key .. 'Anchor']
-                local anchor = _G[anchorName]
-                
-                if not anchor and anchorName ~= "UIParent" then
-                    -- If anchor doesn't exist, fallback to UIParent and try again in 5 seconds
-                    anchor = UIParent
-                    if not self.retryTimerActive then
-                        self.retryTimerActive = true
-                        C_Timer.After(5, function()
-                            self.retryTimerActive = false
-                            self:UpdateTexts()
-                        end)
+            if frame then
+                if db[key .. 'Enabled'] then
+                    frame:Show()
+                    local value = ""
+                    local success, err = pcall(function() value = data.onUpdate and data.onUpdate() or "" end)
+                    if not success then
+                        value = "Error"
+                        self:Print("Error updating " .. name .. ": " .. tostring(err))
                     end
+                    
+                    local anchorName = db[key .. 'Anchor']
+                    local anchor = _G[anchorName]
+                    
+                    if not anchor and anchorName ~= "UIParent" then
+                        -- If anchor doesn't exist, fallback to UIParent and try again in 5 seconds
+                        anchor = UIParent
+                        if not self.retryTimerActive then
+                            self.retryTimerActive = true
+                            C_Timer.After(5, function()
+                                self.retryTimerActive = false
+                                self:UpdateTexts(name)
+                            end)
+                        end
+                    end
+                    
+                    anchor = anchor or UIParent
+                    frame:SetParent(anchor)
+                    frame:ClearAllPoints()
+                    frame:SetPoint(db[key .. 'Point'] or DEFAULT_ALIGN, anchor, db[key .. 'RelativePoint'] or DEFAULT_ALIGN, db[key .. 'X'] or 0, db[key .. 'Y'] or 0)
+                    frame:SetFrameStrata(db[key .. 'Strata'] or ADT_Enums.Strata.MEDIUM)
+                    frame:SetFrameLevel(10)
+
+                    local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
+                    local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT
+                    local font = LSM:Fetch('font', fontName)
+                    
+                    if not font then
+                        font = [[Fonts\FRIZQT__.TTF]]
+                    end
+
+                    local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or DEFAULT_OUTLINE
+                    local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
+                    local shadowOffset = shadow and 1 or 0
+
+                    frame:SetSize(self:CalculateTextWidthForFont('### ' .. name, size), size)
+                    frame.text:SetJustifyH(db[key .. 'Align'] or DEFAULT_ALIGN)
+                    local successSetFont, setFontErr = pcall(function() frame.text:SetFont(font, size, outline) end)
+                    if not successSetFont then
+                        self:Print(string.format("Error setting font %s for %s: %s", tostring(font), name, tostring(setFontErr)))
+                        frame.text:SetFont([[Fonts\FRIZQT__.TTF]], size, outline)
+                    end
+                    frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
+                    frame.text:SetAlpha(1)
+                    frame:SetAlpha(1)
+
+                    self:ApplyText(frame, name, value)
+                else
+                    frame:Hide()
                 end
-                
-                anchor = anchor or UIParent
-                frame:SetParent(anchor)
-                frame:ClearAllPoints()
-                frame:SetPoint(db[key .. 'Point'] or DEFAULT_ALIGN, anchor, db[key .. 'RelativePoint'] or DEFAULT_ALIGN, db[key .. 'X'] or 0, db[key .. 'Y'] or 0)
-                frame:SetFrameStrata(db[key .. 'Strata'] or ADT_Enums.Strata.MEDIUM)
-                frame:SetFrameLevel(10)
-
-                local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
-                local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT
-                local font = LSM:Fetch('font', fontName)
-                
-                if not font then
-                    font = [[Fonts\FRIZQT__.TTF]]
-                end
-
-                local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or DEFAULT_OUTLINE
-                local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
-                local shadowOffset = shadow and 1 or 0
-
-                frame:SetSize(self:CalculateTextWidthForFont('### ' .. name, size), size)
-                frame.text:SetJustifyH(db[key .. 'Align'] or DEFAULT_ALIGN)
-                local successSetFont, setFontErr = pcall(function() frame.text:SetFont(font, size, outline) end)
-                if not successSetFont then
-                    self:Print(string.format("Error setting font %s for %s: %s", tostring(font), name, tostring(setFontErr)))
-                    frame.text:SetFont([[Fonts\FRIZQT__.TTF]], size, outline)
-                end
-                frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
-                frame.text:SetAlpha(1)
-                frame:SetAlpha(1)
-
-                self:ApplyText(frame, name, value)
-            else
-                frame:Hide()
             end
         end
     end

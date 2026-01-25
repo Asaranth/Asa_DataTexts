@@ -1,7 +1,6 @@
 ## Interface: 120000
-## Title: |cFF047857Asa|r Suite: ADT
+## Title: |cFF047857Asa|r Suite: DataTexts
 ## Category-enUS: |cFF047857Asa|r Suite
-## Group: Asa_Suite
 ## Notes: Standalone DataTexts.
 ## Author: Asaranth
 ## Version: 1.0.0
@@ -16,3 +15,4 @@ Settings.lua
 Guild.lua
 Friends.lua
 Durability.lua
+Talents.lua

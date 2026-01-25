@@ -1,4 +1,4 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceConsole-3.0', 'AceEvent-3.0')
+local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceEvent-3.0', 'AceConsole-3.0')
 local LSM = LibStub('LibSharedMedia-3.0')
 
 function ADT:GetSettings()

@@ -1,9 +1,7 @@
 local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT')
 
-local TOOLTIP_TITLE_FRIENDS = 'Friends Online'
-
-local function AddTooltipLinesForFriends()
-    GameTooltip:AddLine(TOOLTIP_TITLE_FRIENDS, 1, 1, 1)
+local function AddTooltipLines()
+    GameTooltip:AddLine('Friends Online', 1, 1, 1)
     local numFriends = C_FriendList and C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
     for i = 1, numFriends do
         local info = C_FriendList.GetFriendInfoByIndex(i)
@@ -47,8 +45,14 @@ end
 
 ADT:RegisterDataText('Friends', {
     onUpdate = GetFriendsOnlineCount,
+    events = {
+        'FRIENDLIST_UPDATE',
+        'BN_CONNECTED',
+        'BN_FRIEND_LIST_SIZE_CHANGED',
+        'BN_FRIEND_INFO_CHANGED',
+    },
     onEnter = function()
-        AddTooltipLinesForFriends()
+        AddTooltipLines()
         AddBattleNetFriendTooltipLines()
     end,
     onClick = function() ToggleFriendsFrame() end,

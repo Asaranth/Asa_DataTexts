@@ -1,4 +1,4 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceConsole-3.0', 'AceEvent-3.0')
+local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceEvent-3.0', 'AceConsole-3.0')
 
 function ADT:GetClassColor(class)
     if not class then return 1, 1, 1 end
