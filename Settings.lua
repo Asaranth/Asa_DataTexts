@@ -44,7 +44,7 @@ function ADT:GetSettings()
     }
 
     local options = {
-        name = 'ADT',
+        name = 'Data Texts',
         type = 'group',
         childGroups = 'tab',
         args = {

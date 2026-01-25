@@ -1,5 +1,3 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceEvent-3.0', 'AceConsole-3.0')
-
 ADT_Enums = {
     Points = {
         TOP = 'TOP',

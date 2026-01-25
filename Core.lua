@@ -80,8 +80,8 @@ function ADT:OnInitialize()
     end
 
     -- Register module's options as a sub-category
-    LibStub("AceConfig-3.0"):RegisterOptionsTable("ADT", options)
-    self.optionsFrame, self.categoryID = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("ADT", "Data Texts", "|cFF047857Asa|r Suite")
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("Data Texts", options)
+    self.optionsFrame, self.categoryID = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Data Texts", "Data Texts", "|cFF047857Asa|r Suite")
 
     if not self.categoryID and self.optionsFrame and self.optionsFrame.parent then
         self.categoryID = self.optionsFrame.parent
@@ -142,7 +142,7 @@ function ADT:ToggleFrameStack(name)
                                 self:Print(string.format("Anchored %s to %s", self.selectingModule, focusName))
                                 self:UpdateTexts()
                                 self:ToggleFrameStack()
-                                LibStub('AceConfigRegistry-3.0'):NotifyChange('ADT')
+                                LibStub('AceConfigRegistry-3.0'):NotifyChange('Data Texts')
                             else
                                 self:Print("Selected frame has no name. Please try another.")
                                 self.selectionFrame:Show()
@@ -180,7 +180,7 @@ function ADT:ChatCommand(input)
             InterfaceOptionsFrame_OpenToCategory("|cFF047857Asa|r Suite")
         end
     else
-        LibStub('AceConfigCmd-3.0'):HandleCommand(self, 'adt', 'ADT', input)
+        LibStub('AceConfigCmd-3.0'):HandleCommand(self, 'adt', 'Data Texts', input)
     end
 end
 
