@@ -8,6 +8,7 @@
   - **Durability**: Tracks your gear's durability and provides a quick overview in the tooltip.
   - **Friends**: Shows online friends (Battle.net and Character) with detailed tooltips.
   - **Guild**: Displays online guild members and their status.
+  - **Talents**: Shows the current active talent loadout, with a quick link to the talent pane.
 - **Highly Customizable**:
   - Adjust font, size, outline, and shadow globally or per DataText.
   - Customize colors for labels and values.
