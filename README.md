@@ -1,6 +1,8 @@
 # Asa Suite: DataTexts
 
-![CurseForge Downloads](https://img.shields.io/curseforge/dt/1442996) ![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1442996)
+[![CurseForge Downloads](https://img.shields.io/curseforge/dt/1442996?style=for-the-badge)](https://www.curseforge.com/wow/addons/asa-datatexts)
+[![Supported WoW Versions](https://img.shields.io/curseforge/game-versions/1442996?style=for-the-badge)](https://www.curseforge.com/wow/addons/asa-datatexts)
+[![Latest Version](https://img.shields.io/curseforge/v/1442996?style=for-the-badge)](https://www.curseforge.com/wow/addons/asa-datatexts)
 
 **Asa Suite: DataTexts** is a lightweight, standalone DataTexts addon for World of Warcraft. It provides customisable information displays (DataTexts) that can be anchored to various UI elements.
 
