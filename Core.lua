@@ -92,6 +92,7 @@ function ADT:OnInitialize()
     end
 
     self:RegisterEvent('PLAYER_ENTERING_WORLD', function() self:UpdateTexts() end)
+
     -- Initial update and data requests
     C_Timer.After(1, function()
         if C_FriendList and C_FriendList.ShowFriends then C_FriendList.ShowFriends() end
@@ -99,13 +100,7 @@ function ADT:OnInitialize()
         self:UpdateTexts()
     end)
 
-    -- Delayed updates to catch elements that load late
-    C_Timer.After(5, function() self:UpdateTexts() end)
-    C_Timer.After(30, function() self:UpdateTexts() end)
-
-    -- Setup slash command
     self:RegisterChatCommand('adt', 'ChatCommand')
-    self:RegisterChatCommand('asadt', 'ChatCommand')
 
     LSM.RegisterCallback(self, 'LibSharedMedia_Registered', 'UpdateTexts')
     LSM.RegisterCallback(self, 'LibSharedMedia_SetGlobal', 'UpdateTexts')
@@ -251,10 +246,10 @@ function ADT:UpdateTexts(targetName)
                         value = "Error"
                         self:Print("Error updating " .. name .. ": " .. tostring(err))
                     end
-                    
+
                     local anchorName = db[key .. 'Anchor']
                     local anchor = _G[anchorName]
-                    
+
                     if not anchor and anchorName ~= "UIParent" then
                         -- If anchor doesn't exist, fallback to UIParent and try again in 5 seconds
                         anchor = UIParent
@@ -266,7 +261,7 @@ function ADT:UpdateTexts(targetName)
                             end)
                         end
                     end
-                    
+
                     anchor = anchor or UIParent
                     frame:SetParent(anchor)
                     frame:ClearAllPoints()
@@ -277,7 +272,7 @@ function ADT:UpdateTexts(targetName)
                     local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
                     local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT
                     local font = LSM:Fetch('font', fontName)
-                    
+
                     if not font then
                         font = [[Fonts\FRIZQT__.TTF]]
                     end
@@ -324,7 +319,7 @@ function ADT:ApplyText(f, label, value)
     if width == 0 then
         width = self:CalculateTextWidthForFont(text, size or 12)
     end
-    
+
     if height == 0 then
         height = size or 12
     end
