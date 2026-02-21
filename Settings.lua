@@ -1,8 +1,10 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceEvent-3.0', 'AceConsole-3.0')
+local _, ADT = ...
 local LSM = LibStub('LibSharedMedia-3.0')
 
+local pairs = pairs
+
 function ADT:GetSettings()
-    local E = ADT_Enums
+    local E = ADT.Enums
     local pointValues = {
         [E.Points.TOP] = 'Top',
         [E.Points.TOPLEFT] = 'Top Left',
@@ -117,7 +119,7 @@ function ADT:GetSettings()
                                 type = 'toggle',
                                 name = 'Class Color Values',
                                 desc = 'Use your current class color for the values.',
-                                set = function(_, val) self.db.global.DataTexts.valueColorOverride = val; self:UpdateTexts() end,
+                                set = function(_, val) self.db.global.DataTexts.valueColorOverride = val; self:ClearColorCache(); self:UpdateTexts(nil, true) end,
                                 get = function() return self.db.global.DataTexts.valueColorOverride end,
                                 order = 2,
                             },
@@ -128,7 +130,8 @@ function ADT:GetSettings()
                                 hasAlpha = false,
                                 set = function(_, r, g, b)
                                     self.db.global.DataTexts.valueColor = { r = r, g = g, b = b }
-                                    self:UpdateTexts()
+                                    self:ClearColorCache()
+                                    self:UpdateTexts(nil, true)
                                 end,
                                 get = function()
                                     local c = self.db.global.DataTexts.valueColor
@@ -146,7 +149,7 @@ function ADT:GetSettings()
                                 type = 'toggle',
                                 name = 'Class Color Labels',
                                 desc = 'Use your current class color for the labels.',
-                                set = function(_, val) self.db.global.DataTexts.labelColorOverride = val; self:UpdateTexts() end,
+                                set = function(_, val) self.db.global.DataTexts.labelColorOverride = val; self:ClearColorCache(); self:UpdateTexts(nil, true) end,
                                 get = function() return self.db.global.DataTexts.labelColorOverride end,
                                 order = 11,
                             },
@@ -157,7 +160,8 @@ function ADT:GetSettings()
                                 hasAlpha = false,
                                 set = function(_, r, g, b)
                                     self.db.global.DataTexts.labelColor = { r = r, g = g, b = b }
-                                    self:UpdateTexts()
+                                    self:ClearColorCache()
+                                    self:UpdateTexts(nil, true)
                                 end,
                                 get = function()
                                     local c = self.db.global.DataTexts.labelColor
@@ -358,7 +362,7 @@ function ADT:GetSettings()
                             type = 'toggle',
                             name = 'Override General Colors',
                             desc = 'Override the color settings from the General tab.',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'OverrideColors'] = val; self:UpdateTexts() end,
+                            set = function(_, val) self.db.global.DataTexts[key .. 'OverrideColors'] = val; self:ClearColorCache(); self:UpdateTexts(name, true) end,
                             get = function() return self.db.global.DataTexts[key .. 'OverrideColors'] end,
                             order = 21,
                             width = 'full',
@@ -366,7 +370,7 @@ function ADT:GetSettings()
                         valueColorOverride = {
                             type = 'toggle',
                             name = 'Class Color Values',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'ValueColorOverride'] = val; self:UpdateTexts() end,
+                            set = function(_, val) self.db.global.DataTexts[key .. 'ValueColorOverride'] = val; self:ClearColorCache(); self:UpdateTexts(name, true) end,
                             get = function() return self.db.global.DataTexts[key .. 'ValueColorOverride'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideColors'] end,
                             order = 22,
@@ -377,7 +381,8 @@ function ADT:GetSettings()
                             hasAlpha = false,
                             set = function(_, r, g, b)
                                 self.db.global.DataTexts[key .. 'ValueColor'] = { r = r, g = g, b = b }
-                                self:UpdateTexts()
+                                self:ClearColorCache()
+                                self:UpdateTexts(name, true)
                             end,
                             get = function()
                                 local c = self.db.global.DataTexts[key .. 'ValueColor']
@@ -389,7 +394,7 @@ function ADT:GetSettings()
                         labelColorOverride = {
                             type = 'toggle',
                             name = 'Class Color Labels',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'LabelColorOverride'] = val; self:UpdateTexts() end,
+                            set = function(_, val) self.db.global.DataTexts[key .. 'LabelColorOverride'] = val; self:ClearColorCache(); self:UpdateTexts(name, true) end,
                             get = function() return self.db.global.DataTexts[key .. 'LabelColorOverride'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideColors'] end,
                             order = 24,
@@ -400,7 +405,8 @@ function ADT:GetSettings()
                             hasAlpha = false,
                             set = function(_, r, g, b)
                                 self.db.global.DataTexts[key .. 'LabelColor'] = { r = r, g = g, b = b }
-                                self:UpdateTexts()
+                                self:ClearColorCache()
+                                self:UpdateTexts(name, true)
                             end,
                             get = function()
                                 local c = self.db.global.DataTexts[key .. 'LabelColor']

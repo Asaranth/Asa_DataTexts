@@ -1,4 +1,11 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT')
+local _, ADT = ...
+
+local PlayerUtil = PlayerUtil
+local C_ClassTalents = C_ClassTalents
+local C_Traits = C_Traits
+local LoadAddOn = LoadAddOn
+local ToggleFrame = ToggleFrame
+local PlayerSpellsFrame = PlayerSpellsFrame
 
 local function GetTalentProfile()
     local spec = PlayerUtil.GetCurrentSpecID()
@@ -15,8 +22,6 @@ ADT:RegisterDataText('Talents', {
     onUpdate = GetTalentProfile,
     events = {
         'TRAIT_CONFIG_UPDATED',
-        'ACTIVE_TALENT_GROUP_CHANGED',
-        'PLAYER_TALENT_UPDATE',
     },
     onClick = function()
         if not PlayerSpellsFrame then
@@ -28,10 +33,10 @@ ADT:RegisterDataText('Talents', {
     end,
     defaultEnabled = true,
     defaultAnchor = 'Minimap',
-    defaultPoint = ADT_Enums.Points.TOP,
-    defaultRelativePoint = ADT_Enums.Points.BOTTOM,
+    defaultPoint = ADT.Enums.Points.TOP,
+    defaultRelativePoint = ADT.Enums.Points.BOTTOM,
     defaultX = 0,
     defaultY = -18,
-    defaultAlign= ADT_Enums.Align.CENTER,
-    defaultStrata = ADT_Enums.Strata.MEDIUM
+    defaultAlign= ADT.Enums.Align.CENTER,
+    defaultStrata = ADT.Enums.Strata.MEDIUM
 })

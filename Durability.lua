@@ -1,32 +1,10 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT')
+local _, ADT = ...
 
-local function GetDurabilityColor(percent)
-    if percent > 50 then
-        return 0, 1, 0
-    elseif percent > 20 then
-        return 1, 1, 0
-    else
-        return 1, 0, 0
-    end
-end
+local ipairs, string_format = ipairs, string.format
 
-local function GetDurability()
-    local minDurability = 100
-    local hasItem = false
-    
-    for i = 1, 18 do
-        local durability, maxDurability = GetInventoryItemDurability(i)
-        if durability and maxDurability then
-            local percent = (durability / maxDurability) * 100
-            if percent < minDurability then
-                minDurability = percent
-            end
-            hasItem = true
-        end
-    end
-    
-    return hasItem and minDurability or 100
-end
+local GetInventoryItemDurability = GetInventoryItemDurability
+local GameTooltip = GameTooltip
+local ToggleCharacter = ToggleCharacter
 
 local function AddTooltipLines()
     GameTooltip:AddLine("Durability", 1, 1, 1)
@@ -53,17 +31,39 @@ local function AddTooltipLines()
         local durability, maxDurability = GetInventoryItemDurability(slotID)
         if durability and maxDurability then
             local percent = (durability / maxDurability) * 100
-            local r, g, b = GetDurabilityColor(percent)
-            GameTooltip:AddDoubleLine(slotName, string.format("%.0f%%", percent), 1, 1, 1, r, g, b)
+            local color = ADT.DURABILITY_THRESHOLDS[#ADT.DURABILITY_THRESHOLDS].color
+            for i = 1, #ADT.DURABILITY_THRESHOLDS do
+                if (percent / 100) <= ADT.DURABILITY_THRESHOLDS[i].threshold then
+                    color = ADT.DURABILITY_THRESHOLDS[i].color
+                    break
+                end
+            end
+            GameTooltip:AddDoubleLine(slotName, string_format("%.0f%%", percent), 1, 1, 1, color.r, color.g, color.b)
         end
     end
 end
 
+local function GetDurability()
+    local minDurability = 100
+    local hasItem = false
+    
+    for i = 1, 18 do
+        local durability, maxDurability = GetInventoryItemDurability(i)
+        if durability and maxDurability then
+            local percent = (durability / maxDurability) * 100
+            if percent < minDurability then
+                minDurability = percent
+            end
+            hasItem = true
+        end
+    end
+    
+    local val = hasItem and minDurability or 100
+    return string_format("%.0f%%", val)
+end
+
 ADT:RegisterDataText('Durability', {
-    onUpdate = function()
-        local percent = GetDurability()
-        return string.format("%.0f%%", percent)
-    end,
+    onUpdate = GetDurability,
     events = {
         'UPDATE_INVENTORY_DURABILITY',
     },
@@ -71,10 +71,10 @@ ADT:RegisterDataText('Durability', {
     onClick = function() ToggleCharacter("PaperDollFrame") end,
     defaultEnabled = true,
     defaultAnchor = 'Minimap',
-    defaultPoint = ADT_Enums.Points.TOP,
-    defaultRelativePoint = ADT_Enums.Points.BOTTOM,
+    defaultPoint = ADT.Enums.Points.TOP,
+    defaultRelativePoint = ADT.Enums.Points.BOTTOM,
     defaultX = 0,
     defaultY = -4,
-    defaultAlign = ADT_Enums.Align.CENTER,
-    defaultStrata = ADT_Enums.Strata.MEDIUM
+    defaultAlign = ADT.Enums.Align.CENTER,
+    defaultStrata = ADT.Enums.Strata.MEDIUM
 })

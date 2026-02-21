@@ -1,4 +1,22 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT')
+local _, ADT = ...
+
+local GameTooltip = GameTooltip
+local GetNumGuildMembers = GetNumGuildMembers
+local GetGuildRosterInfo = GetGuildRosterInfo
+local IsInGuild = IsInGuild
+local ToggleGuildFrame = ToggleGuildFrame
+
+local function GetGuildOnlineCount()
+    local count = 0
+    if IsInGuild and IsInGuild() then
+        local numTotal = GetNumGuildMembers and GetNumGuildMembers() or 0
+        for i = 1, numTotal do
+            local _, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
+            if online then count = count + 1 end
+        end
+    end
+    return count
+end
 
 local function AddTooltipLines()
     GameTooltip:AddLine('Guild Members Online', 1, 1, 1)
@@ -13,18 +31,6 @@ local function AddTooltipLines()
     end
 end
 
-local function GetGuildOnlineCount()
-    local count = 0
-    if IsInGuild and IsInGuild() then
-        local numTotal = GetNumGuildMembers and GetNumGuildMembers() or 0
-        for i = 1, numTotal do
-            local _, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
-            if online then count = count + 1 end
-        end
-    end
-    return count
-end
-
 ADT:RegisterDataText('Guild', {
     onUpdate = GetGuildOnlineCount,
     events = {
@@ -35,10 +41,10 @@ ADT:RegisterDataText('Guild', {
     onClick = function() ToggleGuildFrame() end,
     defaultEnabled = true,
     defaultAnchor = 'Minimap',
-    defaultPoint = ADT_Enums.Points.BOTTOM,
-    defaultRelativePoint = ADT_Enums.Points.BOTTOM,
+    defaultPoint = ADT.Enums.Points.BOTTOM,
+    defaultRelativePoint = ADT.Enums.Points.BOTTOM,
     defaultX = -60,
     defaultY = 4,
-    defaultAlign = ADT_Enums.Align.LEFT,
-    defaultStrata = ADT_Enums.Strata.MEDIUM
+    defaultAlign = ADT.Enums.Align.LEFT,
+    defaultStrata = ADT.Enums.Strata.MEDIUM
 })

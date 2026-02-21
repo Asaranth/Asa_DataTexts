@@ -1,4 +1,28 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT')
+local _, ADT = ...
+
+local GameTooltip = GameTooltip
+local C_FriendList = C_FriendList
+local C_BattleNet = C_BattleNet
+local BNGetNumFriends = BNGetNumFriends
+local ToggleFriendsFrame = ToggleFriendsFrame
+
+local function GetFriendsOnlineCount()
+    local count = 0
+    local numFriends = C_FriendList and C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
+    for i = 1, numFriends do
+        local info = C_FriendList.GetFriendInfoByIndex(i)
+        if info and info.connected then count = count + 1 end
+    end
+
+    local numBNFriends = BNGetNumFriends and BNGetNumFriends() or 0
+    for i = 1, numBNFriends do
+        local info = C_BattleNet and (C_BattleNet.GetFriendAccountInfo and C_BattleNet.GetFriendAccountInfo(i) or (C_BattleNet.GetFriendAccountInfoByIndex and C_BattleNet.GetFriendAccountInfoByIndex(i)))
+        if info and info.gameAccountInfo and info.gameAccountInfo.isOnline and info.gameAccountInfo.clientProgram == "WoW" then
+            count = count + 1
+        end
+    end
+    return count
+end
 
 local function AddTooltipLines()
     GameTooltip:AddLine('Friends Online', 1, 1, 1)
@@ -25,29 +49,10 @@ local function AddBattleNetFriendTooltipLines()
     end
 end
 
-local function GetFriendsOnlineCount()
-    local count = 0
-    local numFriends = C_FriendList and C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
-    for i = 1, numFriends do
-        local info = C_FriendList.GetFriendInfoByIndex(i)
-        if info and info.connected then count = count + 1 end
-    end
-
-    local numBNFriends = BNGetNumFriends and BNGetNumFriends() or 0
-    for i = 1, numBNFriends do
-        local info = C_BattleNet and (C_BattleNet.GetFriendAccountInfo and C_BattleNet.GetFriendAccountInfo(i) or (C_BattleNet.GetFriendAccountInfoByIndex and C_BattleNet.GetFriendAccountInfoByIndex(i)))
-        if info and info.gameAccountInfo and info.gameAccountInfo.isOnline and info.gameAccountInfo.clientProgram == "WoW" then
-            count = count + 1
-        end
-    end
-    return count
-end
-
 ADT:RegisterDataText('Friends', {
     onUpdate = GetFriendsOnlineCount,
     events = {
         'FRIENDLIST_UPDATE',
-        'BN_FRIEND_LIST_SIZE_CHANGED',
         'BN_FRIEND_INFO_CHANGED',
     },
     onEnter = function()
@@ -57,10 +62,10 @@ ADT:RegisterDataText('Friends', {
     onClick = function() ToggleFriendsFrame() end,
     defaultEnabled = true,
     defaultAnchor = 'Minimap',
-    defaultPoint = ADT_Enums.Points.BOTTOM,
-    defaultRelativePoint = ADT_Enums.Points.BOTTOM,
+    defaultPoint = ADT.Enums.Points.BOTTOM,
+    defaultRelativePoint = ADT.Enums.Points.BOTTOM,
     defaultX = 60,
     defaultY = 4,
-    defaultAlign = ADT_Enums.Align.RIGHT,
-    defaultStrata = ADT_Enums.Strata.MEDIUM
+    defaultAlign = ADT.Enums.Align.RIGHT,
+    defaultStrata = ADT.Enums.Strata.MEDIUM
 })

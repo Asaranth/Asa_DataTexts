@@ -1,26 +1,59 @@
-local ADT = LibStub('AceAddon-3.0'):GetAddon('ADT', true) or LibStub('AceAddon-3.0'):NewAddon('ADT', 'AceEvent-3.0', 'AceConsole-3.0')
+local addonName, ADT = ...
+-- Register ADT as the AceAddon object directly
+LibStub('AceAddon-3.0'):NewAddon(ADT, 'ADT', 'AceEvent-3.0', 'AceConsole-3.0')
+-- Point the local ADT to the same table used by other files
 local LSM = LibStub('LibSharedMedia-3.0')
+
+local pairs, ipairs, tostring, string_format, pcall = pairs, ipairs, tostring, string.format, pcall
+
+local CreateFrame = CreateFrame
+local UIParent = UIParent
+local GameTooltip = GameTooltip
+local C_Timer = C_Timer
+local C_FriendList = C_FriendList
+local C_GuildInfo = C_GuildInfo
+local GetMouseFoci = GetMouseFoci
+local _G = _G
 
 ADT.RegisteredDataTexts = {}
 ADT.Frames = {}
 
 local DEFAULT_FONT = 'Friz Quadrata TT'
-local DEFAULT_ALIGN = ADT_Enums.Align.CENTER
+local DEFAULT_ALIGN = ADT.Enums.Align.CENTER
 local DEFAULT_TEXT_SIZE = 12
-local DEFAULT_OUTLINE = ADT_Enums.Outline.NONE
+local DEFAULT_OUTLINE = ADT.Enums.Outline.NONE
 local DEFAULT_SHADOW = true
 
 function ADT:RegisterDataText(name, data)
     self.RegisteredDataTexts[name] = data
     if data.events then
         for _, event in ipairs(data.events) do
-            self:RegisterEvent(event, function() self:UpdateTexts(name) end)
+            self:RegisterEvent(event, 'OnEvent')
+        end
+    end
+end
+
+function ADT:OnEvent(event, ...)
+    -- self:Print("OnEvent: " .. tostring(event)) -- Debug
+    if not self.db then return end
+    for name, data in pairs(self.RegisteredDataTexts) do
+        if data.events then
+            for _, e in ipairs(data.events) do
+                if e == event then
+                    if data.onEvent then
+                        data.onEvent(event, ...)
+                    end
+                    self:UpdateTexts(name)
+                    break
+                end
+            end
         end
     end
 end
 
 function ADT:OnInitialize()
-    local E = ADT_Enums
+    -- self:Print("OnInitialize started") -- Debug
+    local E = ADT.Enums
     local defaults = {
         global = {
             DataTexts = {
@@ -60,6 +93,7 @@ function ADT:OnInitialize()
     end
 
     self.db = LibStub('AceDB-3.0'):New('ADT_DB', defaults, true)
+    -- self:Print("self.db initialized") -- Debug
 
     local options = self:GetSettings()
 
@@ -89,6 +123,7 @@ function ADT:OnInitialize()
 
     for name, _ in pairs(self.RegisteredDataTexts) do
         self.Frames[name] = self:CreateDataTextFrame(name)
+        -- self:Print("Created frame for " .. name) -- Debug
     end
 
     self:RegisterEvent('PLAYER_ENTERING_WORLD', function() self:UpdateTexts() end)
@@ -97,6 +132,7 @@ function ADT:OnInitialize()
     C_Timer.After(1, function()
         if C_FriendList and C_FriendList.ShowFriends then C_FriendList.ShowFriends() end
         if C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() end
+        
         self:UpdateTexts()
     end)
 
@@ -134,7 +170,7 @@ function ADT:ToggleFrameStack(name)
                             if focusName then
                                 local key = self.selectingModule:lower()
                                 self.db.global.DataTexts[key .. "Anchor"] = focusName
-                                self:Print(string.format("Anchored %s to %s", self.selectingModule, focusName))
+                                self:Print(string_format("Anchored %s to %s", self.selectingModule, focusName))
                                 self:UpdateTexts()
                                 self:ToggleFrameStack()
                                 LibStub('AceConfigRegistry-3.0'):NotifyChange('Data Texts')
@@ -155,7 +191,7 @@ function ADT:ToggleFrameStack(name)
 
         self.selectingModule = name
         self.selectionFrame:Show()
-        self:Print(string.format("Select a frame to anchor %s to (Left Click to select, Right Click to cancel).", name))
+        self:Print(string_format("Select a frame to anchor %s to (Left Click to select, Right Click to cancel).", name))
     else
         if self.selectionFrame then
             self.selectionFrame:Hide()
@@ -188,7 +224,7 @@ function ADT:CreateDataTextFrame(name)
     frame.name = name
     frame:EnableMouse(true)
     frame:SetMouseClickEnabled(true)
-    frame:SetFrameStrata(ADT_Enums.Strata.MEDIUM)
+    frame:SetFrameStrata(ADT.Enums.Strata.MEDIUM)
 
     frame:SetScript('OnEnter', function(self_frame)
         if data.onEnter then
@@ -215,7 +251,11 @@ function ADT:CreateDataTextFrame(name)
     return frame
 end
 
-function ADT:UpdateTexts(targetName)
+function ADT:UpdateTexts(targetName, forceUpdate)
+    if not self.db then 
+        -- self:Print("UpdateTexts skipped: self.db is nil") -- Debug
+        return 
+    end
     -- If triggered by a talent/trait event, wait a moment for the game state to update
     if targetName == 'Talents' and not self.talentUpdateInProgress then
         if not self.talentUpdatePending then
@@ -223,7 +263,7 @@ function ADT:UpdateTexts(targetName)
             C_Timer.After(0.5, function()
                 self.talentUpdatePending = false
                 self.talentUpdateInProgress = true
-                self:UpdateTexts('Talents')
+                self:UpdateTexts('Talents', true)
                 self.talentUpdateInProgress = false
             end)
         end
@@ -247,52 +287,86 @@ function ADT:UpdateTexts(targetName)
                         self:Print("Error updating " .. name .. ": " .. tostring(err))
                     end
 
-                    local anchorName = db[key .. 'Anchor']
-                    local anchor = _G[anchorName]
+                    if not (frame.lastValue == value and not forceUpdate) then
+                        frame.lastValue = value
 
-                    if not anchor and anchorName ~= "UIParent" then
-                        -- If anchor doesn't exist, fallback to UIParent and try again in 5 seconds
-                        anchor = UIParent
-                        if not self.retryTimerActive then
-                            self.retryTimerActive = true
-                            C_Timer.After(5, function()
-                                self.retryTimerActive = false
-                                self:UpdateTexts(name)
-                            end)
+                        local anchorName = db[key .. 'Anchor']
+                        local anchor = _G[anchorName]
+
+                        if not anchor and anchorName ~= "UIParent" then
+                            -- If anchor doesn't exist, fallback to UIParent and try again in 5 seconds
+                            anchor = UIParent
+                            if not self.retryTimerActive then
+                                self.retryTimerActive = true
+                                C_Timer.After(5, function()
+                                    self.retryTimerActive = false
+                                    self:UpdateTexts(name)
+                                end)
+                            end
                         end
+
+                        anchor = anchor or UIParent
+                        if frame:GetParent() ~= anchor then
+                            frame:SetParent(anchor)
+                        end
+                        
+                        local point = db[key .. 'Point'] or DEFAULT_ALIGN
+                        local relPoint = db[key .. 'RelativePoint'] or DEFAULT_ALIGN
+                        local x = db[key .. 'X'] or 0
+                        local y = db[key .. 'Y'] or 0
+                        
+                        -- Only update points if changed
+                        local p, ap, rp, ox, oy = frame:GetPoint()
+                        if p ~= point or ap ~= anchor or rp ~= relPoint or ox ~= x or oy ~= y then
+                            frame:ClearAllPoints()
+                            frame:SetPoint(point, anchor, relPoint, x, y)
+                        end
+                        
+                        local strata = db[key .. 'Strata'] or ADT.Enums.Strata.MEDIUM
+                        if frame:GetFrameStrata() ~= strata then
+                            frame:SetFrameStrata(strata)
+                        end
+                        
+                        if frame:GetFrameLevel() ~= 10 then
+                            frame:SetFrameLevel(10)
+                        end
+
+                        local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
+                        local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT
+                        local font = LSM:Fetch('font', fontName)
+
+                        if not font then
+                            font = [[Fonts\FRIZQT__.TTF]]
+                        end
+
+                        local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or DEFAULT_OUTLINE
+                        local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
+                        local shadowOffset = shadow and 1 or 0
+
+                        local currentFont, currentSize, currentOutline = frame.text:GetFont()
+                        if currentFont ~= font or currentSize ~= size or currentOutline ~= outline then
+                            local successSetFont, setFontErr = pcall(function() frame.text:SetFont(font, size, outline) end)
+                            if not successSetFont then
+                                self:Print(string.format("Error setting font %s for %s: %s", tostring(font), name, tostring(setFontErr)))
+                                frame.text:SetFont([[Fonts\FRIZQT__.TTF]], size, outline)
+                            end
+                        end
+                        
+                        local align = db[key .. 'Align'] or DEFAULT_ALIGN
+                        if frame.text:GetJustifyH() ~= align then
+                            frame.text:SetJustifyH(align)
+                        end
+                        
+                        local currentShadowX, currentShadowY = frame.text:GetShadowOffset()
+                        if currentShadowX ~= shadowOffset or currentShadowY ~= -shadowOffset then
+                            frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
+                        end
+                        
+                        frame.text:SetAlpha(1)
+                        frame:SetAlpha(1)
+
+                        self:ApplyText(frame, name, value)
                     end
-
-                    anchor = anchor or UIParent
-                    frame:SetParent(anchor)
-                    frame:ClearAllPoints()
-                    frame:SetPoint(db[key .. 'Point'] or DEFAULT_ALIGN, anchor, db[key .. 'RelativePoint'] or DEFAULT_ALIGN, db[key .. 'X'] or 0, db[key .. 'Y'] or 0)
-                    frame:SetFrameStrata(db[key .. 'Strata'] or ADT_Enums.Strata.MEDIUM)
-                    frame:SetFrameLevel(10)
-
-                    local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
-                    local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or DEFAULT_FONT
-                    local font = LSM:Fetch('font', fontName)
-
-                    if not font then
-                        font = [[Fonts\FRIZQT__.TTF]]
-                    end
-
-                    local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or DEFAULT_OUTLINE
-                    local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
-                    local shadowOffset = shadow and 1 or 0
-
-                    frame:SetSize(self:CalculateTextWidthForFont('### ' .. name, size), size)
-                    frame.text:SetJustifyH(db[key .. 'Align'] or DEFAULT_ALIGN)
-                    local successSetFont, setFontErr = pcall(function() frame.text:SetFont(font, size, outline) end)
-                    if not successSetFont then
-                        self:Print(string.format("Error setting font %s for %s: %s", tostring(font), name, tostring(setFontErr)))
-                        frame.text:SetFont([[Fonts\FRIZQT__.TTF]], size, outline)
-                    end
-                    frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
-                    frame.text:SetAlpha(1)
-                    frame:SetAlpha(1)
-
-                    self:ApplyText(frame, name, value)
                 else
                     frame:Hide()
                 end
@@ -306,9 +380,9 @@ function ADT:ApplyText(f, label, value)
         return
     end
 
-    local valR, valG, valB = self:GetClassColorOrDefault(true, f.name)
-    local lblR, lblG, lblB = self:GetClassColorOrDefault(false, f.name)
-    local text = string.format('|cff%02x%02x%02x%s |cff%02x%02x%02x%s|r', valR * 255, valG * 255, valB * 255, tostring(value or 0), lblR * 255, lblG * 255, lblB * 255, label)
+    local valHex = self:GetColorHexOrDefault(true, f.name)
+    local lblHex = self:GetColorHexOrDefault(false, f.name)
+    local text = string_format('|c%s%s|r |c%s%s|r', valHex, tostring(value or 0), lblHex, label)
 
     f.text:SetText(text)
 
