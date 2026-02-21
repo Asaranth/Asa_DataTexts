@@ -221,6 +221,8 @@ function ADT:CreateDataTextFrame(name)
 
     local frame = CreateFrame('Frame', 'Asa_DataText_' .. name, UIParent)
     frame.text = frame:CreateFontString(nil, 'OVERLAY')
+    frame.text:SetWordWrap(false)
+    frame.text:SetNonSpaceWrap(false)
     frame.name = name
     frame:EnableMouse(true)
     frame:SetMouseClickEnabled(true)
@@ -308,27 +310,7 @@ function ADT:UpdateTexts(targetName, forceUpdate)
                         anchor = anchor or UIParent
                         if frame:GetParent() ~= anchor then
                             frame:SetParent(anchor)
-                        end
-                        
-                        local point = db[key .. 'Point'] or DEFAULT_ALIGN
-                        local relPoint = db[key .. 'RelativePoint'] or DEFAULT_ALIGN
-                        local x = db[key .. 'X'] or 0
-                        local y = db[key .. 'Y'] or 0
-                        
-                        -- Only update points if changed
-                        local p, ap, rp, ox, oy = frame:GetPoint()
-                        if p ~= point or ap ~= anchor or rp ~= relPoint or ox ~= x or oy ~= y then
                             frame:ClearAllPoints()
-                            frame:SetPoint(point, anchor, relPoint, x, y)
-                        end
-                        
-                        local strata = db[key .. 'Strata'] or ADT.Enums.Strata.MEDIUM
-                        if frame:GetFrameStrata() ~= strata then
-                            frame:SetFrameStrata(strata)
-                        end
-                        
-                        if frame:GetFrameLevel() ~= 10 then
-                            frame:SetFrameLevel(10)
                         end
 
                         local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or DEFAULT_TEXT_SIZE
@@ -362,10 +344,28 @@ function ADT:UpdateTexts(targetName, forceUpdate)
                             frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
                         end
                         
+                        self:ApplyText(frame, name, value, font, size, outline)
+
+                        local point = db[key .. 'Point'] or DEFAULT_ALIGN
+                        local relPoint = db[key .. 'RelativePoint'] or DEFAULT_ALIGN
+                        local x = db[key .. 'X'] or 0
+                        local y = db[key .. 'Y'] or 0
+                        
+                        -- Always re-anchor to avoid drift when size changes
+                        frame:ClearAllPoints()
+                        frame:SetPoint(point, anchor, relPoint, x, y)
+                        
+                        local strata = db[key .. 'Strata'] or ADT.Enums.Strata.MEDIUM
+                        if frame:GetFrameStrata() ~= strata then
+                            frame:SetFrameStrata(strata)
+                        end
+                        
+                        if frame:GetFrameLevel() ~= 10 then
+                            frame:SetFrameLevel(10)
+                        end
+
                         frame.text:SetAlpha(1)
                         frame:SetAlpha(1)
-
-                        self:ApplyText(frame, name, value)
                     end
                 else
                     frame:Hide()
@@ -375,7 +375,7 @@ function ADT:UpdateTexts(targetName, forceUpdate)
     end
 end
 
-function ADT:ApplyText(f, label, value)
+function ADT:ApplyText(f, label, value, font, size, outline)
     if not f or not f.text then
         return
     end
@@ -386,17 +386,10 @@ function ADT:ApplyText(f, label, value)
 
     f.text:SetText(text)
 
-    local width = f.text:GetStringWidth()
-    local height = f.text:GetStringHeight()
-    local _, size = f.text:GetFont()
+    local width, height = self:GetTextMetrics(text, font, size, outline)
 
-    if width == 0 then
-        width = self:CalculateTextWidthForFont(text, size or 12)
-    end
+    if width == 0 then width = 10 end
+    if height == 0 then height = size or 12 end
 
-    if height == 0 then
-        height = size or 12
-    end
-
-    f:SetSize(width + 4, height + 2)
+    f:SetSize(width + 8, height + 4)
 end

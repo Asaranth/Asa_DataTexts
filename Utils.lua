@@ -6,12 +6,12 @@ local string_format = string.format
 
 local classColorCache = {}
 local classHexCache = {}
-local widthCache = {}
+local metricCache = {}
 
 function ADT:ClearColorCache()
     classColorCache = {}
     classHexCache = {}
-    widthCache = {}
+    metricCache = {}
 end
 
 function ADT:GetClassColor(class)
@@ -108,4 +108,27 @@ function ADT:GetColorHexOrDefault(isValue, name)
         customColor = customColor or { r = 1, g = 1, b = 1 }
         return string_format("ff%02x%02x%02x", (customColor.r or 1) * 255, (customColor.g or 1) * 255, (customColor.b or 1) * 255)
     end
+end
+
+function ADT:GetTextMetrics(text, font, size, outline)
+    if not text then return 0, 0 end
+    local cacheKey = string_format("%s:%s:%s:%s", text, tostring(font), tostring(size), tostring(outline))
+    if metricCache[cacheKey] then
+        return metricCache[cacheKey].width, metricCache[cacheKey].height
+    end
+
+    if not self.measureFrame then
+        self.measureFrame = CreateFrame("Frame", nil, UIParent)
+        self.measureFontString = self.measureFrame:CreateFontString(nil, "ARTWORK")
+        self.measureFrame:Hide()
+    end
+
+    self.measureFontString:SetFont(font or [[Fonts\FRIZQT__.TTF]], size or 12, outline or "NONE")
+    self.measureFontString:SetText(text)
+    
+    local width = self.measureFontString:GetStringWidth()
+    local height = self.measureFontString:GetStringHeight()
+    
+    metricCache[cacheKey] = { width = width, height = height }
+    return width, height
 end

@@ -3,9 +3,8 @@ local _, ADT = ...
 local PlayerUtil = PlayerUtil
 local C_ClassTalents = C_ClassTalents
 local C_Traits = C_Traits
-local LoadAddOn = LoadAddOn
+local C_AddOns = C_AddOns
 local ToggleFrame = ToggleFrame
-local PlayerSpellsFrame = PlayerSpellsFrame
 
 local function GetTalentProfile()
     local spec = PlayerUtil.GetCurrentSpecID()
@@ -25,7 +24,7 @@ ADT:RegisterDataText('Talents', {
     },
     onClick = function()
         if not PlayerSpellsFrame then
-            LoadAddOn("Blizzard_PlayerSpells")
+            C_AddOns.LoadAddOn("Blizzard_PlayerSpells")
         end
         if PlayerSpellsFrame then
             ToggleFrame(PlayerSpellsFrame)
