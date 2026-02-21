@@ -67,7 +67,10 @@ function ADT:GetSettings()
                                 name = 'Font',
                                 desc = 'Font used for the texts.',
                                 values = LSM:HashTable('font'),
-                                set = function(_, val) self.db.global.DataTexts.font = val; self:UpdateTexts() end,
+                                set = function(_, val)
+                                    self.db.global.DataTexts.font = val
+                                    self:UpdateDataTexts(true)
+                                end,
                                 get = function() return self.db.global.DataTexts.font end,
                                 order = 1,
                             },
@@ -76,7 +79,10 @@ function ADT:GetSettings()
                                 name = 'Text Size',
                                 desc = 'Size of the text.',
                                 min = 8, max = 32, step = 1,
-                                set = function(_, val) self.db.global.DataTexts.textSize = val; self:UpdateTexts() end,
+                                set = function(_, val)
+                                    self.db.global.DataTexts.textSize = val
+                                    self:UpdateDataTexts(true)
+                                end,
                                 get = function() return self.db.global.DataTexts.textSize end,
                                 order = 2,
                             },
@@ -90,7 +96,10 @@ function ADT:GetSettings()
                                     [E.Outline.THICKOUTLINE] = 'Thick Outline',
                                     [E.Outline.MONOCHROME] = 'Monochrome',
                                 },
-                                set = function(_, val) self.db.global.DataTexts.outline = val; self:UpdateTexts() end,
+                                set = function(_, val)
+                                    self.db.global.DataTexts.outline = val
+                                    self:UpdateDataTexts(true)
+                                end,
                                 get = function() return self.db.global.DataTexts.outline end,
                                 order = 3,
                             },
@@ -98,7 +107,10 @@ function ADT:GetSettings()
                                 type = 'toggle',
                                 name = 'Shadow',
                                 desc = 'Show shadow under the text.',
-                                set = function(_, val) self.db.global.DataTexts.shadow = val; self:UpdateTexts() end,
+                                set = function(_, val)
+                                    self.db.global.DataTexts.shadow = val
+                                    self:UpdateDataTexts(true)
+                                end,
                                 get = function() return self.db.global.DataTexts.shadow end,
                                 order = 4,
                             },
@@ -119,7 +131,11 @@ function ADT:GetSettings()
                                 type = 'toggle',
                                 name = 'Class Color Values',
                                 desc = 'Use your current class color for the values.',
-                                set = function(_, val) self.db.global.DataTexts.valueColorOverride = val; self:ClearColorCache(); self:UpdateTexts(nil, true) end,
+                                set = function(_, val)
+                                    self.db.global.DataTexts.valueColorOverride = val
+                                    self:ClearColorCache()
+                                    self:UpdateDataTexts(true)
+                                end,
                                 get = function() return self.db.global.DataTexts.valueColorOverride end,
                                 order = 2,
                             },
@@ -131,7 +147,7 @@ function ADT:GetSettings()
                                 set = function(_, r, g, b)
                                     self.db.global.DataTexts.valueColor = { r = r, g = g, b = b }
                                     self:ClearColorCache()
-                                    self:UpdateTexts(nil, true)
+                                    self:UpdateDataTexts(true)
                                 end,
                                 get = function()
                                     local c = self.db.global.DataTexts.valueColor
@@ -149,7 +165,11 @@ function ADT:GetSettings()
                                 type = 'toggle',
                                 name = 'Class Color Labels',
                                 desc = 'Use your current class color for the labels.',
-                                set = function(_, val) self.db.global.DataTexts.labelColorOverride = val; self:ClearColorCache(); self:UpdateTexts(nil, true) end,
+                                set = function(_, val)
+                                    self.db.global.DataTexts.labelColorOverride = val
+                                    self:ClearColorCache()
+                                    self:UpdateDataTexts(true)
+                                end,
                                 get = function() return self.db.global.DataTexts.labelColorOverride end,
                                 order = 11,
                             },
@@ -161,7 +181,7 @@ function ADT:GetSettings()
                                 set = function(_, r, g, b)
                                     self.db.global.DataTexts.labelColor = { r = r, g = g, b = b }
                                     self:ClearColorCache()
-                                    self:UpdateTexts(nil, true)
+                                    self:UpdateDataTexts(true)
                                 end,
                                 get = function()
                                     local c = self.db.global.DataTexts.labelColor
@@ -192,15 +212,31 @@ function ADT:GetSettings()
             name = name,
             order = order,
             args = {
-                enabled = {
-                    type = 'toggle',
-                    name = 'Enabled',
-                    desc = 'Show/Hide the ' .. name .. ' DataText.',
-                    set = function(_, val) self.db.global.DataTexts[key .. 'Enabled'] = val; self:UpdateTexts() end,
-                    get = function() return self.db.global.DataTexts[key .. 'Enabled'] end,
-                    order = 1,
-                    width = 'full',
-                },
+                    enabled = {
+                        type = 'toggle',
+                        name = 'Enabled',
+                        desc = 'Show/Hide the ' .. name .. ' DataText.',
+                        set = function(_, val)
+                            self.db.global.DataTexts[key .. 'Enabled'] = val
+                            if val then
+                                if not self.Frames[name] then
+                                    self.Frames[name] = self:CreateDataTextFrame(name)
+                                end
+                                if self.Frames[name] then
+                                    self.Frames[name]:Show()
+                                end
+                            else
+                                if self.Frames[name] then
+                                    self.Frames[name]:Hide()
+                                end
+                            end
+                            self:UpdateEvents()
+                            self:UpdateDataText(name, true)
+                        end,
+                        get = function() return self.db.global.DataTexts[key .. 'Enabled'] end,
+                        order = 1,
+                        width = 'full',
+                    },
                 anchoring = {
                     type = 'group',
                     name = 'Anchoring',
@@ -211,7 +247,10 @@ function ADT:GetSettings()
                             type = 'input',
                             name = 'Anchor Frame',
                             desc = 'The name of the frame to anchor to (e.g., Minimap, UIParent).',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Anchor'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Anchor'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Anchor'] end,
                             order = 1,
                             width = 1.5,
@@ -230,7 +269,10 @@ function ADT:GetSettings()
                             desc = 'The layer the DataText is drawn on.',
                             values = strataValues,
                             sorting = strataOrder,
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Strata'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Strata'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Strata'] end,
                             order = 2,
                         },
@@ -248,7 +290,10 @@ function ADT:GetSettings()
                             desc = 'The point on the DataText to anchor from.',
                             values = pointValues,
                             sorting = pointOrder,
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Point'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Point'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Point'] end,
                             order = 1,
                         },
@@ -258,7 +303,10 @@ function ADT:GetSettings()
                             desc = 'The point on the Anchor Frame to anchor to.',
                             values = pointValues,
                             sorting = pointOrder,
-                            set = function(_, val) self.db.global.DataTexts[key .. 'RelativePoint'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'RelativePoint'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'RelativePoint'] end,
                             order = 2,
                         },
@@ -266,7 +314,10 @@ function ADT:GetSettings()
                             type = 'range',
                             name = 'X Offset',
                             min = -1000, max = 1000, step = 1,
-                            set = function(_, val) self.db.global.DataTexts[key .. 'X'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'X'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'X'] end,
                             order = 3,
                         },
@@ -274,7 +325,10 @@ function ADT:GetSettings()
                             type = 'range',
                             name = 'Y Offset',
                             min = -1000, max = 1000, step = 1,
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Y'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Y'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Y'] end,
                             order = 4,
                         },
@@ -294,7 +348,10 @@ function ADT:GetSettings()
                                 [E.Align.CENTER] = 'Center',
                                 [E.Align.RIGHT] = 'Right',
                             },
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Align'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Align'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Align'] end,
                             order = 1,
                         },
@@ -307,7 +364,10 @@ function ADT:GetSettings()
                             type = 'toggle',
                             name = 'Override General Style',
                             desc = 'Override the font, size, and shadow settings from the General tab.',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'OverrideText'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'OverrideText'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'OverrideText'] end,
                             order = 11,
                             width = 'full',
@@ -317,7 +377,10 @@ function ADT:GetSettings()
                             dialogControl = 'LSM30_Font',
                             name = 'Font',
                             values = LSM:HashTable('font'),
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Font'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Font'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Font'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideText'] end,
                             order = 12,
@@ -326,7 +389,10 @@ function ADT:GetSettings()
                             type = 'range',
                             name = 'Text Size',
                             min = 8, max = 32, step = 1,
-                            set = function(_, val) self.db.global.DataTexts[key .. 'TextSize'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'TextSize'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'TextSize'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideText'] end,
                             order = 13,
@@ -340,7 +406,10 @@ function ADT:GetSettings()
                                 [E.Outline.THICKOUTLINE] = 'Thick Outline',
                                 [E.Outline.MONOCHROME] = 'Monochrome',
                             },
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Outline'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Outline'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Outline'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideText'] end,
                             order = 14,
@@ -348,7 +417,10 @@ function ADT:GetSettings()
                         shadow = {
                             type = 'toggle',
                             name = 'Shadow',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'Shadow'] = val; self:UpdateTexts() end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'Shadow'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'Shadow'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideText'] end,
                             order = 15,
@@ -362,7 +434,10 @@ function ADT:GetSettings()
                             type = 'toggle',
                             name = 'Override General Colors',
                             desc = 'Override the color settings from the General tab.',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'OverrideColors'] = val; self:ClearColorCache(); self:UpdateTexts(name, true) end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'OverrideColors'] = val
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'OverrideColors'] end,
                             order = 21,
                             width = 'full',
@@ -370,7 +445,11 @@ function ADT:GetSettings()
                         valueColorOverride = {
                             type = 'toggle',
                             name = 'Class Color Values',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'ValueColorOverride'] = val; self:ClearColorCache(); self:UpdateTexts(name, true) end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'ValueColorOverride'] = val
+                                self:ClearColorCache()
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'ValueColorOverride'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideColors'] end,
                             order = 22,
@@ -382,7 +461,7 @@ function ADT:GetSettings()
                             set = function(_, r, g, b)
                                 self.db.global.DataTexts[key .. 'ValueColor'] = { r = r, g = g, b = b }
                                 self:ClearColorCache()
-                                self:UpdateTexts(name, true)
+                                self:UpdateDataText(name, true)
                             end,
                             get = function()
                                 local c = self.db.global.DataTexts[key .. 'ValueColor']
@@ -394,7 +473,11 @@ function ADT:GetSettings()
                         labelColorOverride = {
                             type = 'toggle',
                             name = 'Class Color Labels',
-                            set = function(_, val) self.db.global.DataTexts[key .. 'LabelColorOverride'] = val; self:ClearColorCache(); self:UpdateTexts(name, true) end,
+                            set = function(_, val)
+                                self.db.global.DataTexts[key .. 'LabelColorOverride'] = val
+                                self:ClearColorCache()
+                                self:UpdateDataText(name, true)
+                            end,
                             get = function() return self.db.global.DataTexts[key .. 'LabelColorOverride'] end,
                             disabled = function() return not self.db.global.DataTexts[key .. 'OverrideColors'] end,
                             order = 24,
@@ -406,7 +489,7 @@ function ADT:GetSettings()
                             set = function(_, r, g, b)
                                 self.db.global.DataTexts[key .. 'LabelColor'] = { r = r, g = g, b = b }
                                 self:ClearColorCache()
-                                self:UpdateTexts(name, true)
+                                self:UpdateDataText(name, true)
                             end,
                             get = function()
                                 local c = self.db.global.DataTexts[key .. 'LabelColor']

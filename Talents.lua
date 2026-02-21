@@ -6,25 +6,33 @@ local C_Traits = C_Traits
 local C_AddOns = C_AddOns
 local ToggleFrame = ToggleFrame
 
+local FRAME_NAME = 'Talents'
+
 local function GetTalentProfile()
     local spec = PlayerUtil.GetCurrentSpecID()
-    if not spec then return "No Spec" end
+    if not spec then return 'No Spec' end
 
     local configID = C_ClassTalents.GetLastSelectedSavedConfigID(spec)
-    if not configID then return "No Config" end
+    if not configID then return 'No Config' end
 
     local configInfo = C_Traits.GetConfigInfo(configID)
-    return configInfo and configInfo.name or "Unknown"
+    return configInfo and configInfo.name or 'Unknown'
 end
 
-ADT:RegisterDataText('Talents', {
-    onUpdate = GetTalentProfile,
+local function Update(forceUpdate)
+    local value = GetTalentProfile()
+    ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+end
+
+ADT:RegisterDataText(FRAME_NAME, {
+    Update = Update,
     events = {
-        'TRAIT_CONFIG_UPDATED',
+        'PLAYER_ENTERING_WORLD',
+        'TRAIT_CONFIG_UPDATED'
     },
     onClick = function()
         if not PlayerSpellsFrame then
-            C_AddOns.LoadAddOn("Blizzard_PlayerSpells")
+            C_AddOns.LoadAddOn('Blizzard_PlayerSpells')
         end
         if PlayerSpellsFrame then
             ToggleFrame(PlayerSpellsFrame)

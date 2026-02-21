@@ -6,6 +6,8 @@ local C_BattleNet = C_BattleNet
 local BNGetNumFriends = BNGetNumFriends
 local ToggleFriendsFrame = ToggleFriendsFrame
 
+local FRAME_NAME = 'Friends'
+
 local function GetFriendsOnlineCount()
     local count = 0
     local numFriends = C_FriendList and C_FriendList.GetNumFriends and C_FriendList.GetNumFriends() or 0
@@ -17,9 +19,7 @@ local function GetFriendsOnlineCount()
     local numBNFriends = BNGetNumFriends and BNGetNumFriends() or 0
     for i = 1, numBNFriends do
         local info = C_BattleNet and (C_BattleNet.GetFriendAccountInfo and C_BattleNet.GetFriendAccountInfo(i) or (C_BattleNet.GetFriendAccountInfoByIndex and C_BattleNet.GetFriendAccountInfoByIndex(i)))
-        if info and info.gameAccountInfo and info.gameAccountInfo.isOnline and info.gameAccountInfo.clientProgram == "WoW" then
-            count = count + 1
-        end
+        if info and info.gameAccountInfo and info.gameAccountInfo.isOnline and info.gameAccountInfo.clientProgram == "WoW" then count = count + 1 end
     end
     return count
 end
@@ -49,13 +49,20 @@ local function AddBattleNetFriendTooltipLines()
     end
 end
 
-ADT:RegisterDataText('Friends', {
-    onUpdate = GetFriendsOnlineCount,
+local function Update(forceUpdate)
+    local value = GetFriendsOnlineCount()
+    ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+end
+
+ADT:RegisterDataText(FRAME_NAME, {
+    Update = Update,
     events = {
+        'PLAYER_ENTERING_WORLD',
         'FRIENDLIST_UPDATE',
-        'BN_FRIEND_INFO_CHANGED',
+        'BN_FRIEND_INFO_CHANGED'
     },
     onEnter = function()
+        Update()
         AddTooltipLines()
         AddBattleNetFriendTooltipLines()
     end,

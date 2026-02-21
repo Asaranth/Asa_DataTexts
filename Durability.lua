@@ -6,22 +6,24 @@ local GetInventoryItemDurability = GetInventoryItemDurability
 local GameTooltip = GameTooltip
 local ToggleCharacter = ToggleCharacter
 
+local FRAME_NAME = 'Durability'
+
 local function AddTooltipLines()
-    GameTooltip:AddLine("Durability", 1, 1, 1)
-    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine('Durability', 1, 1, 1)
+    GameTooltip:AddLine(' ')
     
     local slots = {
-        [1] = "Head",
-        [3] = "Shoulder",
-        [5] = "Chest",
-        [6] = "Waist",
-        [7] = "Legs",
-        [8] = "Feet",
-        [9] = "Wrist",
-        [10] = "Hands",
-        [16] = "Main Hand",
-        [17] = "Off Hand",
-        [18] = "Ranged"
+        [1] = 'Head',
+        [3] = 'Shoulder',
+        [5] = 'Chest',
+        [6] = 'Waist',
+        [7] = 'Legs',
+        [8] = 'Feet',
+        [9] = 'Wrist',
+        [10] = 'Hands',
+        [16] = 'Main Hand',
+        [17] = 'Off Hand',
+        [18] = 'Ranged'
     }
 
     local sortedSlots = {1, 3, 5, 9, 10, 6, 7, 8, 16, 17, 18}
@@ -38,7 +40,7 @@ local function AddTooltipLines()
                     break
                 end
             end
-            GameTooltip:AddDoubleLine(slotName, string_format("%.0f%%", percent), 1, 1, 1, color.r, color.g, color.b)
+            GameTooltip:AddDoubleLine(slotName, string_format('%.0f%%', percent), 1, 1, 1, color.r, color.g, color.b)
         end
     end
 end
@@ -51,24 +53,31 @@ local function GetDurability()
         local durability, maxDurability = GetInventoryItemDurability(i)
         if durability and maxDurability then
             local percent = (durability / maxDurability) * 100
-            if percent < minDurability then
-                minDurability = percent
-            end
+            if percent < minDurability then minDurability = percent end
             hasItem = true
         end
     end
     
     local val = hasItem and minDurability or 100
-    return string_format("%.0f%%", val)
+    return string_format('%.0f%%', val)
 end
 
-ADT:RegisterDataText('Durability', {
-    onUpdate = GetDurability,
+local function Update(forceUpdate)
+    local value = GetDurability()
+    ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+end
+
+ADT:RegisterDataText(FRAME_NAME, {
+    Update = Update,
     events = {
-        'UPDATE_INVENTORY_DURABILITY',
+        'PLAYER_ENTERING_WORLD',
+        'UPDATE_INVENTORY_DURABILITY'
     },
-    onEnter = AddTooltipLines,
-    onClick = function() ToggleCharacter("PaperDollFrame") end,
+    onEnter = function()
+        Update()
+        AddTooltipLines()
+    end,
+    onClick = function() ToggleCharacter('PaperDollFrame') end,
     defaultEnabled = true,
     defaultAnchor = 'Minimap',
     defaultPoint = ADT.Enums.Points.TOP,

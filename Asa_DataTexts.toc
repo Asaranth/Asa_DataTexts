@@ -10,8 +10,9 @@
 
 embeds.xml
 Constants.lua
-Core.lua
 Utils.lua
+UI.lua
+Core.lua
 Settings.lua
 Guild.lua
 Friends.lua
