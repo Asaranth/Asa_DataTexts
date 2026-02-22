@@ -1,49 +1,20 @@
 local _, ADT = ...
 
 local select = select
-
-local GameTooltip = GameTooltip
-local C_GuildInfo = C_GuildInfo
 local IsInGuild = IsInGuild
 local GetNumGuildMembers = GetNumGuildMembers
 local GetGuildRosterInfo = GetGuildRosterInfo
 local GetClassInfo = GetClassInfo
 local ToggleGuildFrame = ToggleGuildFrame
+local C_GuildInfo = C_GuildInfo
+local GameTooltip = GameTooltip
 
 local guildRosterReady = false
 local FRAME_NAME = 'Guild'
 
 local function GetGuildOnlineCount()
     if not IsInGuild() then return 0 end
-
-    -- Modern Retail API
-    if C_GuildInfo and C_GuildInfo.GetNumMembers and C_GuildInfo.GetMemberInfoByIndex then
-        local total = C_GuildInfo.GetNumMembers()
-        if not total or total == 0 then return 0 end
-
-        local onlineCount = 0
-        for i = 1, total do
-            local info = C_GuildInfo.GetMemberInfoByIndex(i)
-            if info and info.isOnline then onlineCount = onlineCount + 1 end
-        end
-
-        return onlineCount
-    end
-
-    -- Legacy Fallback
-    if GetNumGuildMembers and GetGuildRosterInfo then
-        local total = GetNumGuildMembers() or 0
-        local onlineCount = 0
-
-        for i = 1, total do
-            local online = select(9, GetGuildRosterInfo(i))
-            if online then onlineCount = onlineCount + 1 end
-        end
-
-        return onlineCount
-    end
-
-    return 0
+    return (select(2, GetNumGuildMembers()))
 end
 
 local function AddTooltipLines()
@@ -116,7 +87,7 @@ ADT:RegisterDataText(FRAME_NAME, {
         'GUILD_ROSTER_UPDATE',
         'PLAYER_GUILD_UPDATE',
     },
-    onEvent = function(_, event)
+    onEvent = function(event)
         if event == 'GUILD_ROSTER_UPDATE' then
             guildRosterReady = true
         elseif event == 'PLAYER_GUILD_UPDATE' then
@@ -127,7 +98,7 @@ ADT:RegisterDataText(FRAME_NAME, {
         Update(true)
     end,
     onEnter = function()
-        Update()
+        Update(true)
         AddTooltipLines()
     end,
     onClick = ToggleGuildFrame,

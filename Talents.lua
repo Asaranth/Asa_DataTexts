@@ -5,6 +5,7 @@ local C_ClassTalents = C_ClassTalents
 local C_Traits = C_Traits
 local C_AddOns = C_AddOns
 local ToggleFrame = ToggleFrame
+local PlayerSpellsFrame = PlayerSpellsFrame
 
 local FRAME_NAME = 'Talents'
 
@@ -30,6 +31,9 @@ ADT:RegisterDataText(FRAME_NAME, {
         'PLAYER_ENTERING_WORLD',
         'TRAIT_CONFIG_UPDATED'
     },
+    onEnter = function()
+        Update(true)
+    end,
     onClick = function()
         if not PlayerSpellsFrame then
             C_AddOns.LoadAddOn('Blizzard_PlayerSpells')

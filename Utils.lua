@@ -3,7 +3,11 @@ local LSM = LibStub('LibSharedMedia-3.0')
 
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local UnitClass = UnitClass
-local string_format = string.format
+local string_format, math_floor, math_abs, tostring, pcall = string.format, math.floor, math.abs, tostring, pcall
+local _G = _G
+local UIParent = UIParent
+local CreateFrame = CreateFrame
+local C_Timer = C_Timer
 
 local classColorCache = {}
 local classHexCache = {}
@@ -40,7 +44,7 @@ function ADT:GetClassColorHex(class)
     end
 
     local r, g, b = self:GetClassColor(class)
-    local hex = string_format('ff%02x%02x%02x', (r or 1) * 255, (g or 1) * 255, (b or 1) * 255)
+    local hex = string_format('ff%02x%02x%02x', math_floor((r or 1) * 255), math_floor((g or 1) * 255), math_floor((b or 1) * 255))
     classHexCache[class] = hex
     return hex
 end
@@ -105,7 +109,7 @@ function ADT:GetColorHexOrDefault(isValue, name)
         return self:GetClassColorHex(class)
     else
         customColor = customColor or { r = 1, g = 1, b = 1 }
-        return string_format('ff%02x%02x%02x', (customColor.r or 1) * 255, (customColor.g or 1) * 255, (customColor.b or 1) * 255)
+        return string_format('ff%02x%02x%02x', math_floor((customColor.r or 1) * 255), math_floor((customColor.g or 1) * 255), math_floor((customColor.b or 1) * 255))
     end
 end
 
@@ -125,102 +129,128 @@ function ADT:ApplyFrameSettings(name, frame, value, forceUpdate)
     local key = name:lower()
 
     if not db[key .. 'Enabled'] then
-        frame:Hide()
+        if frame:IsShown() then frame:Hide() end
         return
     end
 
-    frame:Show()
-    if not (frame.lastValue == value and not forceUpdate) then
-        frame.lastValue = value
+    if not frame:IsShown() then frame:Show() end
+    if frame:GetAlpha() ~= 1 then frame:SetAlpha(1) end
+    if frame.text:GetAlpha() ~= 1 then frame.text:SetAlpha(1) end
 
-        local anchorName = db[key .. 'Anchor']
-        local anchor = _G[anchorName]
+    local valHex = self:GetColorHexOrDefault(true, frame.name)
+    local lblHex = self:GetColorHexOrDefault(false, frame.name)
+    local text = string_format('|c%s%s|r |c%s%s|r', valHex, tostring(value or 0), lblHex, name)
 
-        if not anchor and anchorName ~= 'UIParent' then
-            anchor = UIParent
-            if not self.retryTimerActive then
-                self.retryTimerActive = true
-                C_Timer.After(2, function()
-                    self.retryTimerActive = false
-                    local data = self.RegisteredDataTexts[name]
-                    if data and data.Update then
-                        data.Update(true)
-                    end
-                end)
-            end
-        end
+    if frame.lastText == text and not forceUpdate then
+        return
+    end
 
-        anchor = anchor or UIParent
-        if frame:GetParent() ~= anchor then
-            frame:SetParent(anchor)
-            frame:ClearAllPoints()
-        end
+    frame.lastValue = value
+    frame.lastText = text
 
-        local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or 12
-        local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or 'Friz Quadrata TT'
-        local font = LSM:Fetch('font', fontName) or [[Fonts\FRIZQT__.TTF]]
+    local anchorName = db[key .. 'Anchor']
+    local anchor = _G[anchorName]
 
-        local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or 'NONE'
-        local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
-        local shadowOffset = shadow and 1 or 0
-
-        local currentFont, currentSize, currentOutline = frame.text:GetFont()
-        if currentFont ~= font or currentSize ~= size or currentOutline ~= outline then
-            local successSetFont, setFontErr = pcall(function() frame.text:SetFont(font, size, outline) end)
-            if not successSetFont then
-                frame.text:SetFont([[Fonts\FRIZQT__.TTF]], size, outline)
-            end
-        end
-
-        local align = db[key .. 'Align'] or 'CENTER'
-        if frame.text:GetJustifyH() ~= align then
-            frame.text:SetJustifyH(align)
-        end
-
-        local currentShadowX, currentShadowY = frame.text:GetShadowOffset()
-        if currentShadowX ~= shadowOffset or currentShadowY ~= -shadowOffset then
-            frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
-        end
-
-        -- Apply Text logic
-        local valHex = self:GetColorHexOrDefault(true, frame.name)
-        local lblHex = self:GetColorHexOrDefault(false, frame.name)
-        local text = string_format('|c%s%s|r |c%s%s|r', valHex, tostring(value or 0), lblHex, name)
-
-        frame.text:SetText(text)
-
-        local width, height = self:GetTextMetrics(text, font, size, outline)
-        if width == 0 then
-            width = 50
-            C_Timer.After(1, function()
+    if not anchor and anchorName ~= 'UIParent' then
+        anchor = UIParent
+        self.retryTimers = self.retryTimers or {}
+        if not self.retryTimers[name] then
+            self.retryTimers[name] = true
+            C_Timer.After(2, function()
+                self.retryTimers[name] = nil
                 local data = self.RegisteredDataTexts[name]
                 if data and data.Update then
                     data.Update(true)
                 end
             end)
         end
-        if height == 0 then height = size or 12 end
-        frame:SetSize(width + 8, height + 4)
+    end
 
-        local point = db[key .. 'Point'] or 'CENTER'
-        local relPoint = db[key .. 'RelativePoint'] or 'CENTER'
-        local x = db[key .. 'X'] or 0
-        local y = db[key .. 'Y'] or 0
+    anchor = anchor or UIParent
 
+    local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or 12
+    local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or 'Friz Quadrata TT'
+    local font = LSM:Fetch('font', fontName) or [[Fonts\FRIZQT__.TTF]]
+    local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or 'NONE'
+    local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
+    local shadowOffset = shadow and 1 or 0
+
+    local currentFont, currentSize, currentOutline = frame.text:GetFont()
+    if currentFont ~= font or currentSize ~= size or currentOutline ~= outline then
+        local successSetFont = pcall(function() frame.text:SetFont(font, size, outline) end)
+        if not successSetFont then
+            frame.text:SetFont([[Fonts\FRIZQT__.TTF]], size, outline)
+        end
+    end
+
+    local align = db[key .. 'Align'] or 'CENTER'
+    if frame.text:GetJustifyH() ~= align then
+        frame.text:SetJustifyH(align)
+    end
+
+    local currentShadowX, currentShadowY = frame.text:GetShadowOffset()
+    if currentShadowX ~= shadowOffset or currentShadowY ~= -shadowOffset then
+        frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
+    end
+
+    if frame.text:GetText() ~= text then
+        frame.text:SetText(text)
+    end
+
+    local width, height = self:GetTextMetrics(text, font, size, outline)
+    if width == 0 then
+        width = 50
+        self.metricTimers = self.metricTimers or {}
+        if not self.metricTimers[name] then
+            self.metricTimers[name] = true
+            C_Timer.After(1, function()
+                self.metricTimers[name] = nil
+                local data = self.RegisteredDataTexts[name]
+                if data and data.Update then
+                    data.Update(true)
+                end
+            end)
+        end
+    end
+    if height == 0 then height = size or 12 end
+
+    local targetWidth, targetHeight = width + 8, height + 4
+    local currentWidth, currentHeight = frame:GetSize()
+    if math_abs(currentWidth - targetWidth) > 0.1 or math_abs(currentHeight - targetHeight) > 0.1 then
+        frame:SetSize(targetWidth, targetHeight)
+    end
+
+    local point = db[key .. 'Point'] or 'CENTER'
+    local relPoint = db[key .. 'RelativePoint'] or 'CENTER'
+    local x = db[key .. 'X'] or 0
+    local y = db[key .. 'Y'] or 0
+
+    if frame:GetParent() ~= anchor then
+        frame:SetParent(anchor)
         frame:ClearAllPoints()
         frame:SetPoint(point, anchor, relPoint, x, y)
-
-        local strata = db[key .. 'Strata'] or 'MEDIUM'
-        if frame:GetFrameStrata() ~= strata then
-            frame:SetFrameStrata(strata)
+    else
+        local nPoints = frame:GetNumPoints()
+        local match = false
+        if nPoints == 1 then
+            local p, r, rp, ox, oy = frame:GetPoint(1)
+            if p == point and r == anchor and rp == relPoint and ox == x and oy == y then
+                match = true
+            end
         end
-
-        if frame:GetFrameLevel() ~= 10 then
-            frame:SetFrameLevel(10)
+        if not match then
+            frame:ClearAllPoints()
+            frame:SetPoint(point, anchor, relPoint, x, y)
         end
+    end
 
-        frame.text:SetAlpha(1)
-        frame:SetAlpha(1)
+    local strata = db[key .. 'Strata'] or 'MEDIUM'
+    if frame:GetFrameStrata() ~= strata then
+        frame:SetFrameStrata(strata)
+    end
+
+    if frame:GetFrameLevel() ~= 10 then
+        frame:SetFrameLevel(10)
     end
 end
 

@@ -1,7 +1,7 @@
 local _, ADT = ...
 local LSM = LibStub('LibSharedMedia-3.0')
 
-local pairs = pairs
+local pairs, ipairs, table_insert, table_sort = pairs, ipairs, table.insert, table.sort
 
 function ADT:GetSettings()
     local E = ADT.Enums
@@ -201,9 +201,9 @@ function ADT:GetSettings()
     -- Sort names for consistent order
     local sortedNames = {}
     for name in pairs(self.RegisteredDataTexts) do
-        table.insert(sortedNames, name)
+        table_insert(sortedNames, name)
     end
-    table.sort(sortedNames)
+    table_sort(sortedNames)
 
     for _, name in ipairs(sortedNames) do
         local key = name:lower()

@@ -3,10 +3,14 @@ LibStub('AceAddon-3.0'):NewAddon(ADT, AddonName, 'AceEvent-3.0', 'AceConsole-3.0
 
 local LSM = LibStub('LibSharedMedia-3.0')
 
-local pairs = pairs, ipairs
+local pairs, ipairs = pairs, ipairs
+local LibStub = LibStub
+local Settings = Settings
+local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategory
 
 ADT.RegisteredDataTexts = {}
 ADT.Frames = {}
+ADT.EventHandlers = {}
 
 local DEFAULT_FONT = 'Friz Quadrata TT'
 local DEFAULT_ALIGN = ADT.Enums.Align.CENTER
@@ -101,15 +105,6 @@ function ADT:OnInitialize()
         self.categoryID = self.optionsFrame.parent
     end
 
-    local db = self.db.global.DataTexts or {}
-    for name, _ in pairs(self.RegisteredDataTexts) do
-        local key = name:lower()
-        if db[key .. 'Enabled'] then
-            self.Frames[name] = self:CreateDataTextFrame(name)
-        end
-    end
-
-    self:UpdateEvents()
     self:RegisterChatCommand('adt', 'ChatCommand')
 
     LSM.RegisterCallback(self, 'LibSharedMedia_Registered', function()
@@ -118,6 +113,19 @@ function ADT:OnInitialize()
     LSM.RegisterCallback(self, 'LibSharedMedia_SetGlobal', function()
         self:UpdateDataTexts(true)
     end)
+end
+
+function ADT:OnEnable()
+    local db = self.db.global.DataTexts or {}
+    for name, _ in pairs(self.RegisteredDataTexts) do
+        local key = name:lower()
+        if db[key .. 'Enabled'] and not self.Frames[name] then
+            self.Frames[name] = self:CreateDataTextFrame(name)
+        end
+    end
+
+    self:UpdateEvents()
+    self:UpdateDataTexts(true)
 end
 
 function ADT:ChatCommand(input)
@@ -139,12 +147,15 @@ end
 function ADT:UpdateEvents()
     local db = self.db.global.DataTexts or {}
     local neededEvents = {}
+    self.EventHandlers = {}
 
     for name, data in pairs(self.RegisteredDataTexts) do
         local key = name:lower()
         if db[key .. 'Enabled'] and data.events then
             for _, event in ipairs(data.events) do
                 neededEvents[event] = true
+                self.EventHandlers[event] = self.EventHandlers[event] or {}
+                self.EventHandlers[event][name] = data
             end
         end
     end
@@ -168,23 +179,14 @@ function ADT:UpdateEvents()
 end
 
 function ADT:OnEvent(event, ...)
-    local db = self.db.global.DataTexts or {}
-    for name, data in pairs(self.RegisteredDataTexts) do
-        local key = name:lower()
-        if db[key .. 'Enabled'] then
-            local interested = false
-            if data.events then
-                for _, e in ipairs(data.events) do
-                    if e == event then
-                        interested = true
-                        break
-                    end
-                end
+    local handlers = self.EventHandlers[event]
+    if handlers then
+        for _, data in pairs(handlers) do
+            if data.onEvent then
+                data.onEvent(event, ...)
             end
-
-            if interested then
-                if data.onEvent then data.onEvent(event, ...) end
-                if data.Update then data.Update() end
+            if data.Update then
+                data.Update()
             end
         end
     end

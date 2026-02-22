@@ -6,6 +6,10 @@ local GameTooltip = GameTooltip
 local C_Timer = C_Timer
 local GetMouseFoci = GetMouseFoci
 local string_format = string.format
+local FrameStackTooltip_Toggle = FrameStackTooltip_Toggle
+local UIParentLoadAddOn = UIParentLoadAddOn
+local ExecuteChatCommand = ExecuteChatCommand
+local LibStub = LibStub
 
 function ADT:ToggleFrameStack(name)
     if not FrameStackTooltip_Toggle then
@@ -72,7 +76,7 @@ function ADT:CreateDataTextFrame(name)
     if not data then return end
 
     local frame = CreateFrame('Frame', 'Asa_DataText_' .. name, UIParent)
-    frame.text = frame:CreateFontString(nil, 'OVERLAY')
+    frame.text = frame:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
     frame.text:SetWordWrap(false)
     frame.text:SetNonSpaceWrap(false)
     frame.name = name
@@ -102,6 +106,8 @@ function ADT:CreateDataTextFrame(name)
     frame.text:SetAllPoints(frame)
     frame.text:SetAlpha(1)
     frame:Show()
+
+    self.Frames[name] = frame
 
     if data.Update then
         data.Update(true)
