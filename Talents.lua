@@ -21,8 +21,10 @@ local function GetTalentProfile()
 end
 
 local function Update(forceUpdate)
-    local value = GetTalentProfile()
-    ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+    C_Timer.After(0.1, function()
+        local value = GetTalentProfile()
+        ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+    end)
 end
 
 ADT:RegisterDataText(FRAME_NAME, {
