@@ -11,6 +11,9 @@ local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategor
 ADT.RegisteredDataTexts = {}
 ADT.Frames = {}
 ADT.EventHandlers = {}
+ADT.ThrottleTimers = {}
+ADT.LastUpdates = {}
+ADT.PendingUpdates = {}
 
 local DEFAULT_FONT = 'Friz Quadrata TT'
 local DEFAULT_ALIGN = ADT.Enums.Align.CENTER
@@ -33,7 +36,18 @@ end
 
 function ADT:UpdateDataText(name, force)
     local data = self.RegisteredDataTexts[name]
-    if data and data.Update then data.Update(force) end
+    if not data or not data.Update then return end
+
+    if force then
+        self.LastUpdates[name] = GetTime()
+        if self.ThrottleTimers[name] then
+            self.ThrottleTimers[name]:Cancel()
+            self.ThrottleTimers[name] = nil
+        end
+        self.PendingUpdates[name] = false
+    end
+
+    data.Update(force)
 end
 
 
@@ -180,13 +194,43 @@ end
 
 function ADT:OnEvent(event, ...)
     local handlers = self.EventHandlers[event]
-    if handlers then
-        for _, data in pairs(handlers) do
-            if data.onEvent then
-                data.onEvent(event, ...)
-            end
-            if data.Update then
-                data.Update()
+    if not handlers then return end
+
+    local now = GetTime()
+    for name, data in pairs(handlers) do
+        local throttle = data.throttle or 3
+
+        -- Always process onEvent immediately to update state (e.g. guildRosterReady)
+        if data.onEvent then data.onEvent(event, ...) end
+
+        if throttle == 0 then
+            if data.Update then data.Update() end
+        else
+            local last = self.LastUpdates[name] or 0
+            if (now - last) >= throttle then
+                if self.ThrottleTimers[name] then
+                    self.ThrottleTimers[name]:Cancel()
+                    self.ThrottleTimers[name] = nil
+                end
+                self.PendingUpdates[name] = false
+                self.LastUpdates[name] = now
+
+                if data.Update then data.Update() end
+            else
+                if not self.PendingUpdates[name] then
+                    self.PendingUpdates[name] = true
+                    local remaining = throttle - (now - last)
+                    self.ThrottleTimers[name] = C_Timer.NewTimer(remaining, function()
+                        self.ThrottleTimers[name] = nil
+                        self.PendingUpdates[name] = false
+                        self.LastUpdates[name] = GetTime()
+                        -- In throttled update, we don't know the exact original event anymore,
+                        -- but we already called onEvent when it occurred.
+                        -- However, we still trigger onEvent('THROTTLED_UPDATE') for safety/generic refreshes.
+                        if data.onEvent then data.onEvent('THROTTLED_UPDATE') end
+                        if data.Update then data.Update() end
+                    end)
+                end
             end
         end
     end

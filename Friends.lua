@@ -61,10 +61,15 @@ end
 
 local function Update(forceUpdate)
     local value = GetFriendsOnlineCount()
-    ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+    if forceUpdate then
+        ADT:UpdateFrameSettings(FRAME_NAME)
+    else
+        ADT:UpdateDataTextValue(FRAME_NAME, value)
+    end
 end
 
 ADT:RegisterDataText(FRAME_NAME, {
+    throttle = 3,
     Update = Update,
     events = {
         'PLAYER_ENTERING_WORLD',
@@ -72,7 +77,7 @@ ADT:RegisterDataText(FRAME_NAME, {
         'BN_FRIEND_INFO_CHANGED',
     },
     onEnter = function()
-        Update(true)
+        ADT:UpdateDataText(FRAME_NAME, true)
         AddTooltipLines()
         AddBattleNetFriendTooltipLines()
     end,

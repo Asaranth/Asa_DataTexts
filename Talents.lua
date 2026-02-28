@@ -23,18 +23,23 @@ end
 local function Update(forceUpdate)
     C_Timer.After(0.1, function()
         local value = GetTalentProfile()
-        ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+        if forceUpdate then
+            ADT:UpdateFrameSettings(FRAME_NAME)
+        else
+            ADT:UpdateDataTextValue(FRAME_NAME, value)
+        end
     end)
 end
 
 ADT:RegisterDataText(FRAME_NAME, {
+    throttle = 0,
     Update = Update,
     events = {
         'PLAYER_ENTERING_WORLD',
         'TRAIT_CONFIG_UPDATED'
     },
     onEnter = function()
-        Update(true)
+        ADT:UpdateDataText(FRAME_NAME, true)
     end,
     onClick = function()
         if not PlayerSpellsFrame then

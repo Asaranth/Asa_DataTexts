@@ -123,7 +123,8 @@ function ADT:GetDatabaseValue(name, key, default)
     return default
 end
 
-function ADT:ApplyFrameSettings(name, frame, value, forceUpdate)
+function ADT:UpdateDataTextValue(name, value)
+    local frame = self.Frames[name]
     if not self.db or not frame then return end
     local db = self.db.global.DataTexts or {}
     local key = name:lower()
@@ -141,12 +142,28 @@ function ADT:ApplyFrameSettings(name, frame, value, forceUpdate)
     local lblHex = self:GetColorHexOrDefault(false, frame.name)
     local text = string_format('|c%s%s|r |c%s%s|r', valHex, tostring(value or 0), lblHex, name)
 
-    if frame.lastText == text and not forceUpdate then
+    if frame.lastText == text then
         return
     end
 
     frame.lastValue = value
     frame.lastText = text
+
+    if frame.text:GetText() ~= text then
+        frame.text:SetText(text)
+    end
+end
+
+function ADT:UpdateFrameSettings(name)
+    local frame = self.Frames[name]
+    if not self.db or not frame then return end
+    local db = self.db.global.DataTexts or {}
+    local key = name:lower()
+
+    if not db[key .. 'Enabled'] then
+        if frame:IsShown() then frame:Hide() end
+        return
+    end
 
     local anchorName = db[key .. 'Anchor']
     local anchor = _G[anchorName]
@@ -193,10 +210,7 @@ function ADT:ApplyFrameSettings(name, frame, value, forceUpdate)
         frame.text:SetShadowOffset(shadowOffset, -shadowOffset)
     end
 
-    if frame.text:GetText() ~= text then
-        frame.text:SetText(text)
-    end
-
+    local text = frame.lastText or ''
     local width, height = self:GetTextMetrics(text, font, size, outline)
     if width == 0 then
         width = 50

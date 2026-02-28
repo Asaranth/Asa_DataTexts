@@ -66,21 +66,34 @@ end
 local function Update(forceUpdate)
     if not IsInGuild() then
         guildRosterReady = false
-        ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], 0, forceUpdate)
+        if forceUpdate then
+            ADT:UpdateFrameSettings(FRAME_NAME)
+        else
+            ADT:UpdateDataTextValue(FRAME_NAME, 0)
+        end
         return
     end
 
     if not guildRosterReady and C_GuildInfo and C_GuildInfo.RequestGuildRoster then
         C_GuildInfo.RequestGuildRoster()
-        ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], '...', forceUpdate)
+        if forceUpdate then
+            ADT:UpdateFrameSettings(FRAME_NAME)
+        else
+            ADT:UpdateDataTextValue(FRAME_NAME, '...')
+        end
         return
     end
 
     local value = GetGuildOnlineCount()
-    ADT:ApplyFrameSettings(FRAME_NAME, ADT.Frames[FRAME_NAME], value, forceUpdate)
+    if forceUpdate then
+        ADT:UpdateFrameSettings(FRAME_NAME)
+    else
+        ADT:UpdateDataTextValue(FRAME_NAME, value)
+    end
 end
 
 ADT:RegisterDataText(FRAME_NAME, {
+    throttle = 3,
     Update = Update,
     events = {
         'PLAYER_ENTERING_WORLD',
@@ -94,11 +107,9 @@ ADT:RegisterDataText(FRAME_NAME, {
             guildRosterReady = false
             if C_GuildInfo and C_GuildInfo.RequestGuildRoster then C_GuildInfo.RequestGuildRoster() end
         end
-
-        Update(true)
     end,
     onEnter = function()
-        Update(true)
+        ADT:UpdateDataText(FRAME_NAME, true)
         AddTooltipLines()
     end,
     onClick = ToggleGuildFrame,
