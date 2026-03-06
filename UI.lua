@@ -5,21 +5,27 @@ local UIParent = UIParent
 local GameTooltip = GameTooltip
 local C_Timer = C_Timer
 local GetMouseFoci = GetMouseFoci
+local GetMouseFocus = GetMouseFocus
 local string_format = string.format
-local FrameStackTooltip_Toggle = FrameStackTooltip_Toggle
-local UIParentLoadAddOn = UIParentLoadAddOn
-local ExecuteChatCommand = ExecuteChatCommand
 local LibStub = LibStub
 
 function ADT:ToggleFrameStack(name)
-    if not FrameStackTooltip_Toggle then
-        UIParentLoadAddOn('Blizzard_DebugTools')
+    if not FrameStackViewer then
+        if C_AddOns and C_AddOns.LoadAddOn then
+            C_AddOns.LoadAddOn('Blizzard_DebugTools')
+        else
+            UIParentLoadAddOn('Blizzard_DebugTools')
+        end
     end
 
-    if FrameStackTooltip_Toggle then
-        FrameStackTooltip_Toggle()
-    else
-        ExecuteChatCommand('fstack')
+    if FrameStackViewer then
+        if FrameStackViewer:IsShown() then
+            FrameStackViewer:Hide()
+        else
+            FrameStackViewer:Show()
+        end
+    elseif SlashCmdList['FRAMESTACK'] then
+        SlashCmdList['FRAMESTACK']('fstack')
     end
 
     if name then
@@ -32,8 +38,14 @@ function ADT:ToggleFrameStack(name)
                 if button == 'LeftButton' then
                     self.selectionFrame:Hide()
                     C_Timer.After(0.01, function()
-                        local foci = GetMouseFoci()
-                        local focus = foci and foci[1]
+                        local focus
+                        if GetMouseFoci then
+                            local foci = GetMouseFoci()
+                            focus = foci and foci[1]
+                        else
+                            focus = GetMouseFocus()
+                        end
+
                         if focus then
                             local focusName = focus:GetName()
                             if focusName then
