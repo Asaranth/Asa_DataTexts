@@ -123,6 +123,37 @@ function ADT:GetDatabaseValue(name, key, default)
     return default
 end
 
+function ADT:GetFontSettings(name)
+    local db = self.db.global.DataTexts or {}
+    local key = name:lower()
+    local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or 12
+    local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or 'Friz Quadrata TT'
+    local font = LSM:Fetch('font', fontName) or [[Fonts\FRIZQT__.TTF]]
+    local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or 'NONE'
+    return font, size, outline
+end
+
+function ADT:UpdateFrameSize(name, text, font, size, outline)
+    local frame = self.Frames[name]
+    if not frame then return end
+    
+    local width, height = self:GetTextMetrics(text, font, size, outline)
+    if width > 0 then
+        local targetWidth, targetHeight = width + 8, height + 4
+        local currentWidth, currentHeight = frame:GetSize()
+        if math_abs(currentWidth - targetWidth) > 0.1 or math_abs(currentHeight - targetHeight) > 0.1 then
+            frame:SetSize(targetWidth, targetHeight)
+        end
+    elseif text == '' then
+        -- Default sizing for empty text to prevent zero-size frames
+        local targetWidth, targetHeight = 58, (size or 12) + 4
+        local currentWidth, currentHeight = frame:GetSize()
+        if math_abs(currentWidth - targetWidth) > 0.1 or math_abs(currentHeight - targetHeight) > 0.1 then
+            frame:SetSize(targetWidth, targetHeight)
+        end
+    end
+end
+
 function ADT:UpdateDataTextValue(name, value)
     local frame = self.Frames[name]
     if not self.db or not frame then return end
@@ -152,6 +183,9 @@ function ADT:UpdateDataTextValue(name, value)
     if frame.text:GetText() ~= text then
         frame.text:SetText(text)
     end
+
+    local font, size, outline = self:GetFontSettings(name)
+    self:UpdateFrameSize(name, text, font, size, outline)
 end
 
 function ADT:UpdateFrameSettings(name)
@@ -185,10 +219,7 @@ function ADT:UpdateFrameSettings(name)
 
     anchor = anchor or UIParent
 
-    local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or 12
-    local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or 'Friz Quadrata TT'
-    local font = LSM:Fetch('font', fontName) or [[Fonts\FRIZQT__.TTF]]
-    local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or 'NONE'
+    local font, size, outline = self:GetFontSettings(name)
     local shadow = db[key .. 'OverrideText'] and db[key .. 'Shadow'] or db.shadow
     local shadowOffset = shadow and 1 or 0
 
@@ -211,9 +242,8 @@ function ADT:UpdateFrameSettings(name)
     end
 
     local text = frame.lastText or ''
-    local width, height = self:GetTextMetrics(text, font, size, outline)
+    local width, _ = self:GetTextMetrics(text, font, size, outline)
     if width == 0 then
-        width = 50
         self.metricTimers = self.metricTimers or {}
         if not self.metricTimers[name] then
             self.metricTimers[name] = true
@@ -226,13 +256,8 @@ function ADT:UpdateFrameSettings(name)
             end)
         end
     end
-    if height == 0 then height = size or 12 end
 
-    local targetWidth, targetHeight = width + 8, height + 4
-    local currentWidth, currentHeight = frame:GetSize()
-    if math_abs(currentWidth - targetWidth) > 0.1 or math_abs(currentHeight - targetHeight) > 0.1 then
-        frame:SetSize(targetWidth, targetHeight)
-    end
+    self:UpdateFrameSize(name, text, font, size, outline)
 
     local point = db[key .. 'Point'] or 'CENTER'
     local relPoint = db[key .. 'RelativePoint'] or 'CENTER'
@@ -271,8 +296,7 @@ end
 function ADT:GetTextMetrics(text, font, size, outline)
     if not text then return 0, 0 end
     local cacheKey = string_format('%s:%s:%s:%s', text, tostring(font), tostring(size), tostring(outline))
-    
-    -- If width is 0 in cache, we should try to recalculate it
+
     if metricCache[cacheKey] and metricCache[cacheKey].width > 0 then
         return metricCache[cacheKey].width, metricCache[cacheKey].height
     end
