@@ -91,7 +91,7 @@ function ADT:GetSettings()
                                 name = 'Outline',
                                 desc = 'Outline of the text.',
                                 values = {
-                                    [E.Outline.NONE] = 'None',
+                                    [E.Outline.NONE] = '',
                                     [E.Outline.OUTLINE] = 'Outline',
                                     [E.Outline.THICKOUTLINE] = 'Thick Outline',
                                     [E.Outline.MONOCHROME] = 'Monochrome',
@@ -401,7 +401,7 @@ function ADT:GetSettings()
                             type = 'select',
                             name = 'Outline',
                             values = {
-                                [E.Outline.NONE] = 'None',
+                                [E.Outline.NONE] = '',
                                 [E.Outline.OUTLINE] = 'Outline',
                                 [E.Outline.THICKOUTLINE] = 'Thick Outline',
                                 [E.Outline.MONOCHROME] = 'Monochrome',

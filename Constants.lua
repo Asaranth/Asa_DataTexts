@@ -28,7 +28,7 @@ ADT.Enums = {
         TOOLTIP = 'TOOLTIP',
     },
     Outline = {
-        NONE = 'NONE',
+        NONE = '',
         OUTLINE = 'OUTLINE',
         THICKOUTLINE = 'THICKOUTLINE',
         MONOCHROME = 'MONOCHROME',

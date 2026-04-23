@@ -1,9 +1,9 @@
-## Interface: 120001
+## Interface: 120005
 ## Title: |cFF047857Asa|r Suite: DataTexts
 ## Category-enUS: |cFF047857Asa|r Suite
 ## Notes: Standalone DataTexts.
 ## Author: Asaranth
-## Version: 1.0.0
+## Version: 1.0.1
 ## SavedVariables: ADT_DB
 ## IconTexture: Interface\AddOns\Asa_DataTexts\Media\logo.png
 ## X-Curse-Project-ID: 1442996

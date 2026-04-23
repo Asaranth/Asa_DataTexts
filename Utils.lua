@@ -129,7 +129,7 @@ function ADT:GetFontSettings(name)
     local size = db[key .. 'OverrideText'] and db[key .. 'TextSize'] or db.textSize or 12
     local fontName = db[key .. 'OverrideText'] and db[key .. 'Font'] or db.font or 'Friz Quadrata TT'
     local font = LSM:Fetch('font', fontName) or [[Fonts\FRIZQT__.TTF]]
-    local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or 'NONE'
+    local outline = db[key .. 'OverrideText'] and db[key .. 'Outline'] or db.outline or ''
     return font, size, outline
 end
 
@@ -307,7 +307,7 @@ function ADT:GetTextMetrics(text, font, size, outline)
         self.measureFrame:Hide()
     end
 
-    self.measureFontString:SetFont(font or [[Fonts\FRIZQT__.TTF]], size or 12, outline or 'NONE')
+    self.measureFontString:SetFont(font or [[Fonts\FRIZQT__.TTF]], size or 12, outline or '')
     self.measureFontString:SetText(text)
     
     local width = self.measureFontString:GetStringWidth()
